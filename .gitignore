@@ -13,3 +13,4 @@ src/main/java/org/HdrHistogram/HistogramLogAnalyzer/applicationlayer/Version.jav
 *.o
 .DS_Store
 build
+dependency-reduced-pom.xml
