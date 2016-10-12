@@ -7,7 +7,7 @@ gh-pages
 .settings
 release.properties
 pom.xml.releaseBackup
-src/main/java/org/HdrHistogram/HistogramLogAnalyzer/Version.java
+src/main/java/org/HdrHistogram/HistogramLogAnalyzer/applicationlayer/Version.java
 *.a
 *.iml
 *.o
