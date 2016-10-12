@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.hdrhistogram.histogramloganalyzer</groupId>
+  <artifactId>HistogramLogAnalyzer</artifactId>
+  <version>1.0.1</version>
+
+  <name>HistogramLogAnalyzer</name>
+
+  <licenses>
+    <license>
+      <comments>
+        * This code was Written by Azul Systems, and released to the
+        * public domain, as explained at http://creativecommons.org/publicdomain/zero/1.0/
+      </comments>
+      <name>Public Domain, per Creative Commons CC0</name>
+      <url>http://creativecommons.org/publicdomain/zero/1.0/</url>
+    </license>
+  </licenses>
+
+  <scm>
+    <url>scm:git:git://github.com/HdrHistogram/HistogramLogAnalyzer.git</url>
+    <connection>scm:git:git://github.com/HdrHistogram/HistogramLogAnalyzer.git</connection>
+    <developerConnection>scm:git:git@github.com:HdrHistogram/HistogramLogAnalyzer.git</developerConnection>
+    <tag>HistogramLogAnalyzer-1.0.1</tag>
+  </scm>
+
+  <issueManagement>
+    <url>https://github.com/HdrHistogram/HistogramLogAnalyzer/issues</url>
+    <system>GitHub Issues</system>
+  </issueManagement>
+
+  <packaging>jar</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <version.template.file>src/main/java/org/HdrHistogram/HistogramLogAnalyzer/applicationlayer/Version.java.template</version.template.file>
+    <version.file>src/main/java/org/HdrHistogram/HistogramLogAnalyzer/applicationlayer/Version.java</version.file>
+    <main.class>org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.Application</main.class>
+    <maven.build.timestamp.format>dd-MMM-yyyy HH:mm:ss z</maven.build.timestamp.format>
+  </properties>
+
+  <dependencies>
+    <!-- https://mvnrepository.com/artifact/org.jfree/jfreechart -->
+    <dependency>
+      <groupId>org.jfree</groupId>
+      <artifactId>jfreechart</artifactId>
+      <version>1.0.17</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.hdrhistogram/HdrHistogram -->
+    <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+      <version>2.1.9</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
+    <dependency>
+      <groupId>org.xerial</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>3.8.11.2</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>${main.class}</Main-Class>
+		    <Implementation-Title>${project.name}</Implementation-Title>
+		    <Implementation-Version>${project.version}</Implementation-Version>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5</version>
+      </plugin>
+
+      <plugin>
+        <groupId>com.google.code.maven-replacer-plugin</groupId>
+        <artifactId>maven-replacer-plugin</artifactId>
+        <version>1.4.0</version>
+        <executions>
+          <execution>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>replace</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <file>${version.template.file}</file>
+          <outputFile>${version.file}</outputFile>
+          <replacements>
+            <replacement>
+              <token>\$BUILD_TIME\$</token>
+              <value>${maven.build.timestamp}</value>
+            </replacement>
+            <replacement>
+              <token>\$VERSION\$</token>
+              <value>${project.version}</value>
+            </replacement>
+          </replacements>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>

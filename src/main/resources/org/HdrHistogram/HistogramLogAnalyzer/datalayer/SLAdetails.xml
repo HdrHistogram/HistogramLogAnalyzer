@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<SLAPercentilemaster>
+	<SLAPercentile acceptablehicupp_msec="1">90.0</SLAPercentile>
+	<SLAPercentile acceptablehicupp_msec="2">99.0</SLAPercentile>
+	<SLAPercentile acceptablehicupp_msec="3">99.90</SLAPercentile>
+	<SLAPercentile acceptablehicupp_msec="4">99.99</SLAPercentile>
+	<SLAPercentile acceptablehicupp_msec="5">99.999</SLAPercentile>
+	<SLAPercentile acceptablehicupp_msec="6">99.9999</SLAPercentile>
+</SLAPercentilemaster>
