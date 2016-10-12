@@ -1,0 +1,17 @@
+target
+.idea
+out
+gh-pages
+.classpath
+.project
+.settings
+release.properties
+pom.xml.releaseBackup
+src/main/java/org/HdrHistogram/HistogramLogAnalyzer/Version.java
+*.a
+*.iml
+*.o
+*.os
+HistogramLogAnalyzer.jar
+.DS_Store
+build
