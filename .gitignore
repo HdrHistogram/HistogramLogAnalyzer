@@ -11,7 +11,5 @@ src/main/java/org/HdrHistogram/HistogramLogAnalyzer/applicationlayer/Version.jav
 *.a
 *.iml
 *.o
-*.os
-HistogramLogAnalyzer.jar
 .DS_Store
 build
