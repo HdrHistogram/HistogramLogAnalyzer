@@ -55,17 +55,4 @@ class TagsHelper {
             return tags;
         }
     }
-
-    static void processFile(String inputFileName, String outputFileName, String tag)
-            throws FileNotFoundException
-    {
-        String[] args;
-        if (tag != null) {
-            args = new String[]{"-i", inputFileName, "-o", outputFileName, "-tag", tag};
-        } else {
-            args = new String[]{"-i", inputFileName, "-o", outputFileName};
-        }
-        HistogramLogProcessor hlp = new HistogramLogProcessor(args);
-        hlp.run();
-    }
 }

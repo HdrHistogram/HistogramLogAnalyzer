@@ -48,7 +48,6 @@ public class ChartBuilder implements MouseListener {
     }
 
     private DBConnect db;
-    private JFreeChart chart;
     private ChartPanel cp;
     public XYSeriesCollection sc;
     private int howmanylines;
@@ -513,14 +512,14 @@ public class ChartBuilder implements MouseListener {
         return sc;
     }
 
-    private void chartHiccupDurationByPercentile(ChartType chartType) {
+    private JFreeChart chartHiccupDurationByPercentile(ChartType chartType) {
 
         String chartTitle = ConstantsHelper.getChartTitle(ChartType.hiccupDurationByPercentile);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(ChartType.hiccupDurationByPercentile);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(ChartType.hiccupDurationByPercentile);
         String logAxis = ConstantsHelper.getLogAxisLabel(ChartType.hiccupDurationByPercentile);
 
-        chart = ChartFactory.createXYLineChart(chartTitle,
+        JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
             xAxisLabel,
             yAxisLabel,
             get_dataset(chartType),
@@ -529,11 +528,11 @@ public class ChartBuilder implements MouseListener {
             true,
             false);
 
-        chart.getPlot().setBackgroundPaint(Color.white);
-        chart.getXYPlot().setRangeGridlinePaint(Color.gray);
-        chart.getXYPlot().setDomainGridlinePaint(Color.gray);
+        drawable.getPlot().setBackgroundPaint(Color.white);
+        drawable.getXYPlot().setRangeGridlinePaint(Color.gray);
+        drawable.getXYPlot().setDomainGridlinePaint(Color.gray);
 
-        XYPlot plot = (XYPlot) chart.getPlot();
+        XYPlot plot = (XYPlot) drawable.getPlot();
 
         LogAxis ll = new LogAxis(logAxis);
         ll.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
@@ -642,15 +641,16 @@ public class ChartBuilder implements MouseListener {
         plot.setRangePannable(true);
 
         plot.setRenderer(renderer);
+        return drawable;
     }
 
-    private void chartCountOfBucketedHiccupValues(ChartType chartType) {
+    private JFreeChart chartCountOfBucketedHiccupValues(ChartType chartType) {
 
         String chartTitle = ConstantsHelper.getChartTitle(ChartType.countOfBucketedHiccupValues);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(ChartType.countOfBucketedHiccupValues);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(ChartType.countOfBucketedHiccupValues);
 
-        chart = ChartFactory.createXYLineChart(chartTitle,
+        JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
             xAxisLabel,
             yAxisLabel,
             get_dataset(chartType),
@@ -658,11 +658,11 @@ public class ChartBuilder implements MouseListener {
             true,
             true,
             false);
-        chart.getPlot().setBackgroundPaint(Color.white);
-        chart.getXYPlot().setRangeGridlinePaint(Color.gray);
-        chart.getXYPlot().setDomainGridlinePaint(Color.gray);
+        drawable.getPlot().setBackgroundPaint(Color.white);
+        drawable.getXYPlot().setRangeGridlinePaint(Color.gray);
+        drawable.getXYPlot().setDomainGridlinePaint(Color.gray);
 
-        XYPlot plot = (XYPlot) chart.getPlot();
+        XYPlot plot = (XYPlot) drawable.getPlot();
 
         // X axis
         // -> LogarithmicAxis logDomain = new LogarithmicAxis(chartXAxisLabel);
@@ -721,7 +721,7 @@ public class ChartBuilder implements MouseListener {
             }
         }
 
-        LegendTitle legend = chart.getLegend();
+        LegendTitle legend = drawable.getLegend();
         legend.setPosition(RectangleEdge.TOP);
 
         renderer.setBaseToolTipGenerator(new StandardXYToolTipGenerator());
@@ -730,15 +730,17 @@ public class ChartBuilder implements MouseListener {
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
         plot.setRenderer(renderer);
+
+        return drawable;
     }
 
-    private void chartMaxHiccupDurationByTimeInterval(ChartType chartType) {
+    private JFreeChart chartMaxHiccupDurationByTimeInterval(ChartType chartType) {
 
         String chartTitle = ConstantsHelper.getChartTitle(ChartType.maxHiccupDurationByTimeInterval);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(ChartType.maxHiccupDurationByTimeInterval);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(ChartType.maxHiccupDurationByTimeInterval);
 
-        chart = ChartFactory.createXYLineChart(chartTitle,
+        JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
             xAxisLabel,
             yAxisLabel,
             get_dataset(chartType),
@@ -746,11 +748,11 @@ public class ChartBuilder implements MouseListener {
             true,
             true,
             false);
-        chart.getPlot().setBackgroundPaint(Color.white);
-        chart.getXYPlot().setRangeGridlinePaint(Color.gray);
-        chart.getXYPlot().setDomainGridlinePaint(Color.gray);
+        drawable.getPlot().setBackgroundPaint(Color.white);
+        drawable.getXYPlot().setRangeGridlinePaint(Color.gray);
+        drawable.getXYPlot().setDomainGridlinePaint(Color.gray);
 
-        XYPlot plot = (XYPlot) chart.getPlot();
+        XYPlot plot = (XYPlot) drawable.getPlot();
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         for (int i=0; i < plot.getSeriesCount(); i++) {
             renderer.setSeriesPaint(i, new Color(color_interval[i][0], color_interval[i][1], color_interval[i][2]));
@@ -760,48 +762,32 @@ public class ChartBuilder implements MouseListener {
             renderer.setSeriesShapesVisible(i, false);
         }
 
-        LegendTitle legend = chart.getLegend();
+        LegendTitle legend = drawable.getLegend();
         legend.setPosition(RectangleEdge.TOP);
         plot.setDomainGridlinesVisible(false);
         renderer.setBaseToolTipGenerator(new StandardXYToolTipGenerator());
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
         plot.setRenderer(renderer);
+
+        return drawable;
     }
 
-    public ChartPanel generic_chart(ChartType chartType) {
+    public JFreeChart createDrawable(ChartType chartType) {
 
         switch (chartType) {
             case hiccupDurationByPercentile:
-                chartHiccupDurationByPercentile(ChartType.hiccupDurationByPercentile);
-                break;
-                    
+                return chartHiccupDurationByPercentile(ChartType.hiccupDurationByPercentile);
             case maxHiccupDurationByTimeInterval:
-                chartMaxHiccupDurationByTimeInterval(ChartType.maxHiccupDurationByTimeInterval);
-                break;
-                         
+                return chartMaxHiccupDurationByTimeInterval(ChartType.maxHiccupDurationByTimeInterval);
             case countOfBucketedHiccupValues:
-                chartCountOfBucketedHiccupValues(ChartType.countOfBucketedHiccupValues);
-                break;
-                        
+                return chartCountOfBucketedHiccupValues(ChartType.countOfBucketedHiccupValues);
             default:
                 System.err.println("jHiccupLogAnalyzer: Invalid value passed as chart selector");
                 System.exit(1);
                 break;
         }
-
-        cp = new ChartPanel(chart, true);
-        cp.setPreferredSize(new java.awt.Dimension(800, 600));
-        cp.setBackground(Color.gray);
-        cp.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(4, 4, 4, 4),
-                BorderFactory.createLineBorder(Color.black)));
-
-        ToolTipManager.sharedInstance().registerComponent(cp);
-        cp.addMouseListener(this);
-
-        db.close_db();
-        return cp;
+        throw new IllegalArgumentException();
     }
 
     @Override

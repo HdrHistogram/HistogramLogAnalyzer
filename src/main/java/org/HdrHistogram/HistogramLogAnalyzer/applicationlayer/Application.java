@@ -29,7 +29,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import java.text.SimpleDateFormat;
 
@@ -72,9 +71,6 @@ import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.DBConnect;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 
 public class Application implements ActionListener, Runnable {
 
@@ -205,22 +201,7 @@ public class Application implements ActionListener, Runnable {
         }
 
         try {
-            File outFile = File.createTempFile(new File(hlogFileName).getName(), "");
-            File hgrmFile = new File(outFile.getAbsoluteFile() + ".hgrm");
-            outFile.deleteOnExit();
-            hgrmFile.deleteOnExit();
-
-            if (jHiccupViewerConfiguration.verbose()) {
-                appLogger.fine("Creating temp file: " + outFile.getAbsolutePath());
-                appLogger.fine("Creating temp file: " + hgrmFile.getAbsolutePath());
-            }
-
-            TagsHelper.processFile(hlogFileName, outFile.getAbsolutePath(), tag);
-            ConstantsHelper.detectLogGeneratorTool(hlogFileName, tag);
-            processHgrm(hgrmFile.getAbsolutePath(), outFile.getAbsolutePath());
-
-            outFile.delete();
-            hgrmFile.delete();
+            run(hlogFileName, tag);
         } catch (Throwable throwable) {
             showMessage("Failed to process Histogram Log file: " + hlogFileName);
             System.err.println("Failed to process Histogram Log file: " + hlogFileName);
@@ -504,28 +485,6 @@ public class Application implements ActionListener, Runnable {
             }
         }
         snapshot_groupfiles(f3,snapfile);
-    }
-
-    public void processHgrm(String filename_histogram, String filename_log) {
-        if (jHiccupViewerConfiguration.verbose()) {
-            appLogger.entering("Application", "processHgrm");
-        }
-
-        File f_histogram = new File(filename_histogram);
-        File f_log = new File(filename_log);
-        if (f_histogram.exists() && f_histogram.isFile() && f_log.exists() && f_log.isFile()) {
-            run(filename_histogram, filename_log);
-        } else {
-            if (!f_histogram.exists()) {
-                showMessage("Histogram file does not exist in the same path as file: " + filename_log);
-            } else {
-                showMessage("Log file does not exist in the same path as file: " + filename_histogram);
-            }
-        }
-
-        if (jHiccupViewerConfiguration.verbose()) {
-            appLogger.exiting("Application", "processHgrm");
-        }
     }
 
     public void showMessage(String msg) {
@@ -868,18 +827,8 @@ public class Application implements ActionListener, Runnable {
                 if (!tabbedPane.getTitleAt(i).contains(sla_tabname)) {
                     JPanel p1 = (JPanel) tabbedPane.getComponentAt(i);
                     for (int k = 0; k < p1.getComponentCount(); k++) {
-                        JPanel bPanel = (JPanel) p1.getComponent(k);
-                        JPanel cPanel = (JPanel) bPanel.getComponent(0);
-                        JPanel jp2 = (JPanel) cPanel.getComponent(1);
-                        ChartPanel cp2 = (ChartPanel) jp2.getComponent(0);
-                        XYPlot plot = (XYPlot) cp2.getChart().getPlot();
-                        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot
-                                .getRenderer();
-                        if (b == false)
-                            renderer.setSeriesVisible(2, false);
-                        else
-                            renderer.setSeriesVisible(2, true);
-                        plot.setRenderer(renderer);
+                        JPanel latencyPanel = (JPanel) p1.getComponent(k);
+                        ((LatencyPanel)latencyPanel).updateSLAVisibility(b);
                     }
                 }
             }
@@ -896,64 +845,8 @@ public class Application implements ActionListener, Runnable {
                 if (!tabbedPane.getTitleAt(i).contains(sla_tabname)) {
                     JPanel p1 = (JPanel) tabbedPane.getComponentAt(i);
                     for (int k = 0; k < p1.getComponentCount(); k++) {
-                        JPanel bPanel = (JPanel) p1.getComponent(k);
-                        JPanel cPanel = (JPanel) bPanel.getComponent(0);
-                        JPanel jp2 = (JPanel) cPanel.getComponent(1);
-                        ChartPanel cp2 = (ChartPanel) jp2.getComponent(0);
-                        XYPlot plot = (XYPlot) cp2.getChart().getPlot();
-                        XYSeriesCollection sc = (XYSeriesCollection) plot.getDataset();
-                        XYSeries sla_series = sc.getSeries(2);
-
-                        XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
-                        renderer = (XYLineAndShapeRenderer) plot.getRenderer();
-                        sla_db_percentile.add(0, 0.0);
-                        final Double strsymbols[] = sla_db_percentile.toArray(new Double[sla_db_percentile.size()]);
-                        sla_db_percentile.remove(0);
-                        /*
-                        renderer.setSeriesItemLabelGenerator(3, new XYItemLabelGenerator() {
-                            @Override
-                            public String generateLabel(XYDataset arg0, int arg1, int arg2) {
-                                return strsymbols[arg2].toString() + "%";
-                            }
-                        });
-                        */
-                        sla_series.clear();
-                        ResultSet rs = null;
-                        try {
-                            String cmd = "select sla_cvalue,sla_hiccuptimeinterval from j_sla_details;";
-                            rs = db.statement.executeQuery(cmd);
-                            while (rs.next()) {
-                                sla_series.addOrUpdate(
-                                        rs.getDouble("sla_cvalue"),
-                                        rs.getDouble("sla_hiccuptimeinterval"));
-                            }
-                        } catch (Exception except) {
-                            System.err.println("HistogramLogAnalyzer: SLA reset graph exception");
-                            System.err.println("  Message: " + except.getMessage());
-                            System.err.println("  Cause:   " + except.getCause());
-                            except.printStackTrace();
-                        } finally {
-                            if (rs != null) {
-                                try {
-                                    rs.close();
-                                } catch (SQLException except) {
-                                    System.err.println("HistogramLogAnalyzer: SQL exception");
-                                    System.err.println("  Message: " + except.getMessage());
-                                    System.err.println("  Cause:   " + except.getCause());
-                                    except.printStackTrace();
-                                }
-                            }
-                        }
-/*
-                        XYSeries hhh_series = sc.getSeries(3);
-                        //hhh_series.clear();
-                        for (int j = 0; j < strsymbols.length; j++) {
-                            hhh_series.addOrUpdate(getSLAMasterPercentileValue(strsymbols[j]), 0.0);
-                            if (jHiccupViewerConfiguration.verbose()) {
-                                appLogger.logp(Level.FINEST, "Application", "sla_reset_graph", "reset symbols: " + j + " " + getSLAMasterPercentileValue(strsymbols[j]));
-                            }
-                        }
-*/
+                        JPanel latencyPanel = (JPanel) p1.getComponent(k);
+                        ((LatencyPanel)latencyPanel).resetSLA();
                     }
                 }
             }
@@ -1216,57 +1109,30 @@ public class Application implements ActionListener, Runnable {
         return cPanel;
     }
 
-    private JPanel get_chartPanel() {
-        JPanel cPanel = new JPanel(new GridLayout(2,1));
-        cPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        cPanel.add(makechart_2(ChartBuilder.ChartType.maxHiccupDurationByTimeInterval)); 
-        if (jHiccupViewerConfiguration.showGraphOfCountOfBucketedHiccupValues()) {
-            cPanel.add(makechart_2(ChartBuilder.ChartType.countOfBucketedHiccupValues)); 
-        } else {
-            cPanel.add(makechart_2(ChartBuilder.ChartType.hiccupDurationByPercentile));
-        }
-
-        JPanel bPanel = new JPanel(new BorderLayout());
-
-        //JButton btt = new JButton();
-        //btt.setActionCommand("action_cmp_close");
-        //btt.setIcon(new ImageIcon(getClass().getResource("icon_close.png")));
-        //btt.setToolTipText("Close");
-        //btt.addActionListener(this);
-
-        //JPanel lp = new JPanel(new GridLayout(1,3));
-        //JTextField field = new JTextField(localfile);
-        //field.setEditable(false);
-        //lp.add(field);
-        //lp.add(btt);
-
-        bPanel.add(cPanel);
-        //bPanel.add(lp,BorderLayout.SOUTH);
-        return bPanel;
-    }
-
-    private JPanel tab_builder() {
+    private JPanel tab_builder(JPanel latencyPanel) {
         JPanel coverPanel = new JPanel(new GridLayout(1,1));
-        coverPanel.add(get_chartPanel());
+        coverPanel.add(latencyPanel);
         return coverPanel;
     }
 
-    private void add_ithere() {
+    private void add_ithere(JPanel latencyPanel) {
         JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
-        p1.add(get_chartPanel());
+        p1.add(latencyPanel);
         p1.setLayout(new GridLayout(1,2));
     }
 
-    private void add_tabs() {
+    private void add_tabs(String hlogFileName, String tag) {
+        JPanel latencyPanel =
+            new LatencyPanel(db, hlogFileName, tag, jHiccupViewerConfiguration, chk_sla.isSelected(), sla_db_percentile);
         if (tabbedPane.getTabCount() != 0 && is_at_SLAtab() == 0) {
             if (JOptionPane.showConfirmDialog(mainframe, "Open within the current tab?", localfile, JOptionPane.YES_NO_OPTION) == 0) {
-                add_ithere();
+                add_ithere(latencyPanel);
                 return;
             }
         }
         String shortTabTitle = ConstantsHelper.getTabTitle(true);
         String fullTabTitle = ConstantsHelper.getTabTitle(false);
-        tabbedPane.insertTab(shortTabTitle, null, tab_builder(), fullTabTitle, tabbedPane.getTabCount());
+        tabbedPane.insertTab(shortTabTitle, null, tab_builder(latencyPanel), fullTabTitle, tabbedPane.getTabCount());
         tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(shortTabTitle, tabbedPane));
         tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
     }
@@ -1276,29 +1142,33 @@ public class Application implements ActionListener, Runnable {
         mainframe.setTitle(APP_TITLE);
     }
 
-    public void run(String filename_hgrm, String filename_log) {
+    public void run(String hlogFileName, String tag) throws IOException {
         if (jHiccupViewerConfiguration.verbose()) {
             appLogger.entering("Application", "run");
         }
 
-        updateLabel("Please wait... Processing jHicuup file " + filename_log);
-        clean_all(filename_log);
+        updateLabel("Please wait... Processing jHicuup file " + hlogFileName);
+        clean_all(hlogFileName);
+
+        ConstantsHelper.detectLogGeneratorTool(hlogFileName, tag);
+
         db = new DBConnect(((Long) System.currentTimeMillis()).toString());
-        pr = new Parser(this.db);
-        if (pr.executejobs(filename_hgrm, filename_log) != 0) {
-            updateLabel("Failed to process jHicupp file " + filename_log);
+        pr = new Parser(this.db, hlogFileName, tag, null, null);
+        if (pr.execute() != 0) {
+            updateLabel("Failed to process jHicupp file " + hlogFileName);
             showMessage("Cannot parse the input file");
             clean_all("no file is open");
 
             if (jHiccupViewerConfiguration.verbose()) {
-                appLogger.exiting("Application", "run", "failed to open file: " + filename_log);
+                appLogger.exiting("Application", "run", "failed to open file: " + hlogFileName);
             }
             return;
         }
         dbarry.add(db);
         sla_getfromdb();
+
         showMainPanel();
-        add_tabs();
+        add_tabs(hlogFileName, tag);
 
         if (jHiccupViewerConfiguration.exitAfterParsingFile()) {
             System.exit(1);
@@ -1324,44 +1194,6 @@ public class Application implements ActionListener, Runnable {
             appLogger.exiting("Application", "SetCursor_ready");
         }
 
-    }
-
-    public JPanel makechart_2(ChartBuilder.ChartType chartType) {
-        if (jHiccupViewerConfiguration.verbose()) {
-            appLogger.entering("Application", "makechart_2");
-        }
-
-        JPanel jp = new JPanel(new BorderLayout());
-        try {
-            sla_db_percentile.add(0, 0.0);
-
-            if (jHiccupViewerConfiguration.verbose()) {
-                appLogger.logp(Level.FINEST, "Application", "makechart_2", "sla_db_percentile: " + sla_db_percentile);
-            }
-
-            cm = new ChartBuilder(db, chk_sla.isSelected(), sla_db_percentile.toArray(new Double[sla_db_percentile.size()]));
-            sla_db_percentile.remove(0);
-            ChartPanel cp = cm.generic_chart(chartType);
-            cp.setName(localfile + "_ChartPanelGraph_" + chartType); // Added to identify panel name for QA use
-            jp.add(cp);
-
-        } catch (Exception except) {
-            System.err.println("HistogramLogAnalyzer: Image generation exception");
-            System.err.println("  Message: " + except.getMessage());
-            System.err.println("  Cause:   " + except.getCause());
-            except.printStackTrace();
-
-            JLabel label = new JLabel("Failed to create chart: " + except.getMessage());
-            label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setVerticalAlignment(SwingConstants.CENTER);
-            jp.add(label);
-        }
-
-        if (jHiccupViewerConfiguration.verbose()) {
-            appLogger.exiting("Application", "makechart_2");
-        }
-
-        return jp;
     }
 
     private void exit_routine() {
