@@ -349,11 +349,10 @@ public class Application implements ActionListener, Runnable {
             if (tabbedPane.getTabCount() != 0 && is_at_SLAtab() == 0) {
                 JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
                 for (int k = 0; k < p1.getComponentCount(); k++) {
-                    JPanel bPanel = (JPanel) p1.getComponent(k);
-                    JPanel cPanel = (JPanel) bPanel.getComponent(0);
+                    JPanel latencyPanel = (JPanel) p1.getComponent(k);
 
-                    JPanel jp1 = (JPanel) cPanel.getComponent(0);
-                    JPanel jp2 = (JPanel) cPanel.getComponent(1);
+                    JPanel jp1 = (JPanel) latencyPanel.getComponent(0);
+                    JPanel jp2 = (JPanel) latencyPanel.getComponent(1);
                     ChartPanel cp1 = (ChartPanel) jp1.getComponent(0);
                     ChartPanel cp2 = (ChartPanel) jp2.getComponent(0);
                     XYPlot plot1 = (XYPlot) cp1.getChart().getPlot();
@@ -423,13 +422,10 @@ public class Application implements ActionListener, Runnable {
         JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
         File[] f3 = new File[p1.getComponentCount()];
         for (int k = 0; k < p1.getComponentCount(); k++) {
-            JPanel bPanel = (JPanel) p1.getComponent(k);
-            JPanel cPanel = (JPanel) bPanel.getComponent(0);
-            //JPanel lp = (JPanel) bPanel.getComponent(1);
-            //JTextField txt = (JTextField) lp.getComponent(0);
+            JPanel latencyPanel = (JPanel) p1.getComponent(k);
 
-            JPanel jp1 = (JPanel) cPanel.getComponent(0);
-            JPanel jp2 = (JPanel) cPanel.getComponent(1);
+            JPanel jp1 = (JPanel) latencyPanel.getComponent(0);
+            JPanel jp2 = (JPanel) latencyPanel.getComponent(1);
             ChartPanel cp1 = (ChartPanel) jp1.getComponent(0);
             ChartPanel cp2 = (ChartPanel) jp2.getComponent(0);
             //String snaptitle = txt.getText();

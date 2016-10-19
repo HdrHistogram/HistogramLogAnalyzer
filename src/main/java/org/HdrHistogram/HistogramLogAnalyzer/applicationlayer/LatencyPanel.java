@@ -112,7 +112,6 @@ class LatencyPanel extends JPanel implements AxisChangeListener
         XYPlot plot2 = (XYPlot) topChart.getChart().getPlot();
         String lowerString = String.valueOf(plot2.getDomainAxis().getLowerBound());
         String upperString = String.valueOf(plot2.getDomainAxis().getUpperBound());
-        System.out.println("lowerString="+lowerString+", upperString="+upperString);
 
         // needs re-reading hlog file
         db = new DBConnect(((Long) System.currentTimeMillis()).toString());
