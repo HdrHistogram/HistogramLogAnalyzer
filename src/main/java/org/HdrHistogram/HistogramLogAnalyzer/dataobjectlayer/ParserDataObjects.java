@@ -9,6 +9,7 @@ public class ParserDataObjects {
 	public double hst_value;
 	public double hst_percentile;
 	public double hst_totalcountincludingthisvalue;
+	public String hst_tag;
 
 	public String percentile_elapsedTime;
 	public String percentile_ip_count;
@@ -22,4 +23,5 @@ public class ParserDataObjects {
 	public String percentile_tp_999;
 	public String percentile_tp_9999;
 	public String percentile_tp_max;
+	public String percentile_tag;
 }

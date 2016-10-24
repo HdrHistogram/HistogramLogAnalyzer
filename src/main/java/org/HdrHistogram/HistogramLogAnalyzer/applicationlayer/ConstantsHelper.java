@@ -10,22 +10,20 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-class ConstantsHelper {
+public class ConstantsHelper {
 
     private enum LogGeneratorTool {CASSANDRA_STRESS, JHICCUP, UNKNOWN}
     private static LogGeneratorTool logGenTool;
     private static String currentHlogFileName;
-    private static String currentTag;
 
     private static final String CASSANDRA_STRESS_TOOL_NAME = "Cassandra Stress";
     private static final String JHICCUP_TOOL_NAME = "jHiccup";
 
-    static void detectLogGeneratorTool(String hlogFileName, String tag)
+    static void detectLogGeneratorTool(String hlogFileName)
             throws IOException
     {
         BufferedReader reader = null;
         currentHlogFileName = hlogFileName;
-        currentTag = tag;
         try {
             reader = new BufferedReader(new FileReader(new File(currentHlogFileName)));
             String line = reader.readLine();
@@ -58,76 +56,46 @@ class ConstantsHelper {
         } else {
             title += currentHlogFileName;
         }
-        if (currentTag != null) {
-            title += "[" + currentTag + "]";
-        }
         return title;
     }
 
-    static String getLatencyName() {
-        if (logGenTool == LogGeneratorTool.JHICCUP) {
-            return "Hiccup";
-        } else  if (logGenTool == LogGeneratorTool.CASSANDRA_STRESS) {
-            if (currentTag != null) {
-                if (currentTag.endsWith("-rt")) {
-                    return "Response Time";
-                } else if (currentTag.endsWith("-st")) {
-                    return "Service Time";
-                } else if (currentTag.endsWith("-wt")) {
-                    return "Wait Time";
-                }
-            }
-        }
+    public static String getLatencyName() {
         return "Latency";
     }
 
-    static String getChartTitle(ChartBuilder.ChartType chartType) {
+    public static String getChartTitle(LatencyChartType chartType) {
         switch (chartType) {
-            case hiccupDurationByPercentile:
+            case PERCENTILE:
                 return getLatencyName() + " By Percentile Distribution";
-            case maxHiccupDurationByTimeInterval:
+            case TIMELINE:
                 return "Maximum " + getLatencyName() + " In Time Interval";
-            case countOfBucketedHiccupValues:
-                if (Application.getJHiccupViewerConfiguration().showGraphOfCountOfBucketedPauseValues()) {
-                    return "Pause Duration Bucketed Values";
-                } else {
-                    return "Raw " + getLatencyName() + " Duration Bucketed Values";
-                }
         }
         throw new IllegalArgumentException();
     }
 
-    static String getXAxisLabel(ChartBuilder.ChartType chartType) {
+    public static String getXAxisLabel(LatencyChartType chartType) {
         switch (chartType) {
-            case hiccupDurationByPercentile:
+            case PERCENTILE:
                 return "Percentile";
-            case maxHiccupDurationByTimeInterval:
+            case TIMELINE:
                 return "Elapsed Time (sec)";
-            case countOfBucketedHiccupValues:
-                if (Application.getJHiccupViewerConfiguration().showGraphOfCountOfBucketedPauseValues()) {
-                    return "Bucketed Pause Duration (millisec)";
-                } else {
-                    return "Bucketed Raw " + getLatencyName() + " Duration (millisec)";
-                }
         }
         throw new IllegalArgumentException();
     }
 
-    static String getYAxisLabel(ChartBuilder.ChartType chartType) {
+    public static String getYAxisLabel(LatencyChartType chartType) {
         switch (chartType) {
-            case hiccupDurationByPercentile:
+            case PERCENTILE:
                 return getLatencyName() + " Duration (msec)";
-            case maxHiccupDurationByTimeInterval:
+            case TIMELINE:
                 return getLatencyName() + " Duration (msec)";
-            case countOfBucketedHiccupValues:
-                return "Number in Bucket";
         }
         throw new IllegalArgumentException();
     }
 
-    static String getLogAxisLabel(ChartBuilder.ChartType chartType) {
+    public static String getLogAxisLabel(LatencyChartType chartType) {
         switch (chartType) {
-            case hiccupDurationByPercentile:
+            case PERCENTILE:
                 return getLatencyName() + " by Percentile";
         }
         throw new IllegalArgumentException();
