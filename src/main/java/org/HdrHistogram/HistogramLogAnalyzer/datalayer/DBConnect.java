@@ -3,45 +3,40 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-public class DBConnect{
-	public Connection connection = null;
-	public ResultSet resultSet = null;
-	public Statement statement = null;
-	public String filename=null;
+class DBConnect{
+	private Connection connection = null;
+	private ResultSet resultSet = null;
+	Statement statement = null;
+	private String filename=null;
 
-	public DBConnect(String db_filename) {
+	DBConnect(String db_filename) {
 		try {
 			this.filename = db_filename;
 			Class.forName("org.sqlite.JDBC");
 			connection = DriverManager.getConnection("jdbc:sqlite::memory:");
 //	        connection = DriverManager.getConnection("jdbc:sqlite:"+filename);
 			statement = connection.createStatement();
-		} catch (Exception e) {
+		} catch (Exception ignored) {
 		}
 	}
-	public void close_db() {
+	void close_db() {
 		try {
-		    if(resultSet!=null)
-		    {
-			if(resultSet.isClosed()==false)
-			resultSet.close();
-			statement.close();
-			connection.close();
+		    if(resultSet!=null) {
+				if(!resultSet.isClosed()) {
+					resultSet.close();
+				}
+				statement.close();
+				connection.close();
 		    }
 		} catch (Exception e) {
 		    System.out.println("DDD ERROR");
 		}
-	}
-
-	public String getDBfilename()
-	{
-	    return filename;
 	}
 }

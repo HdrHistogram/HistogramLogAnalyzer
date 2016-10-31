@@ -85,7 +85,9 @@ public final class ZFileChooser {
      */
     public File getSelectedFile() {
         if (isMac()) {
-            return new File(getFileDialog().getDirectory(), getFileDialog().getFile());
+            String dir = getFileDialog().getDirectory();
+            String file = getFileDialog().getFile();
+            return new File(dir, file);
         } else {
             return getFileChooser().getSelectedFile();
         }

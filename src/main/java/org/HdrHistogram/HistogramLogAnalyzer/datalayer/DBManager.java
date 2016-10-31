@@ -5,112 +5,140 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.*;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.Application;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.DBConnect;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.ParserDataObjects;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import java.util.logging.Level;
-
-public class DBManager {
-
-    public static final Double VALUE_FOR_100PERCENT = Double.valueOf(99.99999);
+class DBManager {
 
     private DBConnect db = null;
 
-    public String db_insert_j_hst = "INSERT INTO j_hst ";
-    public String db_create_j_hst = "CREATE TABLE j_hst(value REAL,Percentile REAL,TotalCountIncludingThisValue REAL, cvalue REAL, hst_tag REAL);";
-    public String db_insert_j_percentile = "INSERT INTO j_percentile ";
-    public String db_create_j_percentile = "CREATE TABLE j_percentile(percentile_elapsedTime REAL,percentile_ip_count TEXT,percentile_ip_50 REAL,percentile_ip_90 REAL,percentile_ip_max REAL,percentile_tp_count TEXT,percentile_tp_50 REAL,percentile_tp_90 REAL,percentile_tp_99 REAL,percentile_tp_999 REAL,percentile_tp_9999 REAL,percentile_tp_max REAL,percentile_tag REAL);";
+    DBManager() {
+        try {
+            this.db = new DBConnect(((Long) System.currentTimeMillis()).toString());
+            create_base_tables();
+            this.db.close_db();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     private void create_base_tables() {
         try {
+            String db_create_j_hst = "CREATE TABLE j_hst("+
+                    "latencyAxisValue REAL, " +
+                    "percentileAxisValue REAL, " +
+                    "tag REAL);";
             db.statement.execute(db_create_j_hst);
+
+            String db_create_j_percentile = "CREATE TABLE j_percentile("+
+                    "timelineAxisValue REAL," +
+                    "latencyAxisValue REAL," +
+                    "tag REAL," +
+                    "mwp_percentile REAL," +
+                    "mwp_intervalCount REAL);";
             db.statement.execute(db_create_j_percentile);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
+
+    /*
+     * Timeline related statements
+     */
+    void insertTimelineObject(TimelineObject to) {
+        try {
+            String db_insert_j_percentile = "INSERT INTO j_percentile VALUES(\"" +
+                    String.valueOf(to.timelineAxisValue) + "\",\"" +
+                    String.valueOf(to.latencyAxisValue) + "\",\"" +
+                    to.tag + "\",\"" +
+                    to.mwp_percentile + "\",\"" +
+                    to.mwp_intervalCount + "\");";
+
+            db.statement.execute(db_insert_j_percentile);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    TimelineIterator listTimelineObjects(boolean multipleTags, String tag, MWPProperties.MWPEntry mwpEntry) {
+        String queryString = createTimelineQueryString(multipleTags, tag, mwpEntry);
+        ResultSet rs = null;
+        try {
+            rs = db.statement.executeQuery(queryString);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new TimelineIterator(rs);
+    }
+
+    private String createTimelineQueryString(boolean multipleTags, String tag, MWPProperties.MWPEntry mwpEntry) {
+        String ret;
+        if (multipleTags) {
+            MWPProperties.MWPEntry defaultMWPEntry = MWPProperties.getDefaultMWPEntry();
+            ret = "select timelineAxisValue,latencyAxisValue from j_percentile" +
+                    " where tag='"+ tag + "'" +
+                    " and mwp_percentile='" + defaultMWPEntry.getPercentile() + "'" +
+                    " and mwp_intervalCount='" + defaultMWPEntry.getIntervalCount() + "';";
+        } else {
+            ret = "select timelineAxisValue,latencyAxisValue from j_percentile" +
+                    " where mwp_percentile='" + mwpEntry.getPercentile() + "'" +
+                    " and mwp_intervalCount='" + mwpEntry.getIntervalCount() + "';";
+        }
+        return ret;
+    }
+
+    /*
+     * Percentile related statements
+     */
+
+    void insertPercentileObject(PercentileObject po) {
+        try {
+            String db_insert_j_hst = "INSERT INTO j_hst VALUES (\"" +
+                    String.valueOf(po.getLatencyAxisValue()) + "\", \"" +
+                    String.valueOf(po.getPercentileAxisValue()) + "\", \"" +
+                    po.getTag() + "\")";
+
+            db.statement.execute(db_insert_j_hst);
         } catch (Exception except) {
-            System.err.println("HistogramLogAnalyzer: Database table creation exception");
-            System.err.println("  Message: " + except.getMessage());
-            System.err.println("  Cause:   " + except.getCause());
             except.printStackTrace();
         }
     }
 
-    public void parser_insert(ParserDataObjects pDObj) {
+    PercentileIterator listPercentileObjects(String tag, PercentileObject mpo) {
+        String queryString = createPercentileQueryString(tag, mpo);
+        ResultSet rs = null;
         try {
-            Double cvalue = 1.0d/(double)(1.0-pDObj.hst_percentile);
-            if(cvalue.isInfinite())
-                cvalue=(double)0;
-            String x = db_insert_j_hst + "VALUES (\"" + pDObj.hst_value
-                    + "\", \"" + pDObj.hst_percentile
-                    + "\", \"" + pDObj.hst_totalcountincludingthisvalue
-                    + "\", \"" + cvalue
-                    + "\", \"" + pDObj.hst_tag + "\")";
-
-            db.statement.execute(x);
-        } catch (Exception except) {
-            System.err.println("HistogramLogAnalyzer: Image generation exception");
-            System.err.println("  Message: " + except.getMessage());
-            System.err.println("  Cause:   " + except.getCause());
-            except.printStackTrace();
-        } finally {
-            try {
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            rs = db.statement.executeQuery(queryString);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return new PercentileIterator(rs);
     }
 
-    public void parser_percentile_insert(ParserDataObjects pDObj) {
-        try {
-            String x = db_insert_j_percentile + "VALUES(\"" + pDObj.percentile_elapsedTime + "\"," + 
-                    "\"" + pDObj.percentile_ip_count + 
-                    "\",\"" + pDObj.percentile_ip_50 + 
-                    "\",\"" + pDObj.percentile_ip_90 + 
-                    "\",\"" + pDObj.percentile_ip_max + 
-                    "\",\"" + pDObj.percentile_tp_count + 
-                    "\",\"" + pDObj.percentile_tp_50 + 
-                    "\",\"" + pDObj.percentile_tp_90 + 
-                    "\",\"" + pDObj.percentile_tp_99 + 
-                    "\",\"" + pDObj.percentile_tp_999 + 
-                    "\",\"" + pDObj.percentile_tp_9999 + 
-                    "\",\"" + pDObj.percentile_tp_max +
-                    "\",\"" + pDObj.percentile_tag + "\");";
-            db.statement.execute(x);
-
-        } catch (Exception except) {
-            System.err.println("HistogramLogAnalyzer: Database exception on percentile data insert");
-            System.err.println("  Message: " + except.getMessage());
-            System.err.println("  Cause:   " + except.getCause());
-            except.printStackTrace();
-        } finally {
-            try {
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+    private String createPercentileQueryString(String tag, PercentileObject mpo) {
+        return "select * from j_hst where latencyAxisValue < " + String.valueOf(mpo.getLatencyAxisValue()) +
+               " and tag='"+ tag + "';";
     }
 
-    public DBManager(DBConnect db) {
+    MaxPercentileIterator listMaxPercentileObjects(String tag) {
+        String queryString = createMaxValuesQueryString(tag);
+        ResultSet rs = null;
         try {
-            this.db = db;
-            create_base_tables();
-            this.db.close_db();
-        } catch (Exception except) {
-            System.err.println("HistogramLogAnalyzer: Database and SLA details exception");
-            System.err.println("  Message: " + except.getMessage());
-            System.err.println("  Cause:   " + except.getCause());
-            except.printStackTrace();
+            rs = db.statement.executeQuery(queryString);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+
+        return new MaxPercentileIterator(rs);
+    }
+
+    private String createMaxValuesQueryString(String tag) {
+        return "select max( cast(latencyAxisValue as float) ) as MaxLatencyAxisValue, "+
+                "max(cast(PercentileAxisValue as float) ) as MaxPercentileAxisValue from j_hst"
+                        + " where tag='"+ tag + "';";
     }
 }

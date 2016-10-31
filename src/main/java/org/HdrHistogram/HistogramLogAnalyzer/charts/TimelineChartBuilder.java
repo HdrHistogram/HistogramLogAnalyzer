@@ -6,7 +6,9 @@
 package org.HdrHistogram.HistogramLogAnalyzer.charts;
 
 import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.*;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.DBConnect;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TimelineIterator;
+import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.TimelineObject;
 import org.jfree.chart.*;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.LegendItemEntity;
@@ -26,18 +28,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Random;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.Set;
 import java.util.List;
 
 public class TimelineChartBuilder {
 
-    public JPanel createTimelineChart(Set<String> tags, DBConnect db, final ZoomProperty zoomProperty) {
-        JFreeChart drawable = createTimelineDrawable(tags, db);
+    public JPanel createTimelineChart(final HistogramModel model, final ZoomProperty zoomProperty)
+    {
+        JFreeChart drawable = createTimelineDrawable(model);
 
-        ChartPanel chartPanel = new ChartPanel(drawable, true);
+        final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
         chartPanel.setBackground(Color.gray);
         chartPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -82,6 +84,24 @@ public class TimelineChartBuilder {
             }
         });
 
+        model.getMwpProperties().addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("applyMWP")) {
+                    HistogramModel newModel = null;
+                    try {
+                        String inputFileName = model.getInputFileName();
+                        MWPProperties mwpProperties = model.getMwpProperties();
+                        newModel = new HistogramModel(inputFileName, null, null, mwpProperties);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    JFreeChart drawable = createTimelineDrawable(newModel);
+                    chartPanel.setChart(drawable);
+                }
+            }
+        });
+
         // zooming on timeline chart updates percentile chart (fire part)
         final XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
         plot.getDomainAxis().addChangeListener(new AxisChangeListener() {
@@ -98,48 +118,22 @@ public class TimelineChartBuilder {
         return chartPanel;
     }
 
-    static class Colors {
-
-        private static List<Color> colors = new ArrayList<Color>();
-        static {
-            colors.add(Color.BLUE);
-            colors.add(Color.GREEN);
-            colors.add(Color.RED);
-        }
-
-        static Color getColor(int i) {
-            Color c = colors.get(i);
-            if (c == null) {
-                Random r = new Random();
-                c = new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255));
-                colors.add(c);
-            }
-            return c;
-        }
-
-        static Color getSLAColor() {
-            return Color.YELLOW;
-        }
-    }
-
-    private JFreeChart createTimelineDrawable(Set<String> tags, DBConnect db) {
+    private JFreeChart createTimelineDrawable(HistogramModel model)
+    {
         String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.TIMELINE);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.TIMELINE);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.TIMELINE);
-
-        XYSeriesCollection sc = new XYSeriesCollection();
-        for (String tag : tags) {
-            sc.addSeries(createXYSeries(tag, db));
-        }
+        XYSeriesCollection seriesCollection = createXYSeriesCollection(model);
 
         JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
                 xAxisLabel,
                 yAxisLabel,
-                sc,
+                seriesCollection,
                 PlotOrientation.VERTICAL,
                 true,
                 true,
                 false);
+
         drawable.getPlot().setBackgroundPaint(Color.white);
         drawable.getXYPlot().setRangeGridlinePaint(Color.gray);
         drawable.getXYPlot().setDomainGridlinePaint(Color.gray);
@@ -147,7 +141,7 @@ public class TimelineChartBuilder {
         XYPlot plot = (XYPlot) drawable.getPlot();
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         for (int i = 0; i < plot.getSeriesCount(); i++) {
-            renderer.setSeriesPaint(i, Colors.getColor(i));
+            renderer.setSeriesPaint(i, ColorHelper.getColor(i));
             renderer.setSeriesShapesVisible(i, false);
             renderer.setSeriesLinesVisible(i, true);
         }
@@ -163,22 +157,53 @@ public class TimelineChartBuilder {
         return drawable;
     }
 
-    private XYSeries createXYSeries(String tag, DBConnect db) {
-        String defaultTagKey = "Max per interval";
-        XYSeries series1 = new XYSeries(tag == null ? defaultTagKey : tag);
-        try {
-            String cmd = "select percentile_elapsedTime,percentile_ip_max from j_percentile"
-                       + (tag != null ? " where percentile_tag='"+ tag + "'": "") + ";";
+    private static final String DEFAULT_KEY = "Max per interval";
 
-            ResultSet rs = db.statement.executeQuery(cmd);
-            while (rs.next()) {
-                double percentileElapsedTime = rs.getDouble("percentile_elapsedTime");
-                double percentileIntervalMax = rs.getDouble("percentile_ip_max");
-                series1.add(percentileElapsedTime, percentileIntervalMax);
+    private XYSeriesCollection createXYSeriesCollection(HistogramModel histogramModel) {
+        XYSeriesCollection ret = new XYSeriesCollection();
+
+        Set<String> tags = histogramModel.getTags();
+        MWPProperties mwpProperties = histogramModel.getMwpProperties();
+
+        // tool doesn't support MWP for log files with multiple tags
+        boolean multipleTags = tags.size() > 1;
+
+        if (multipleTags) {
+            for (String tag : tags) {
+                XYSeries series = new XYSeries(tag == null ? DEFAULT_KEY : tag);
+
+                TimelineIterator ti = histogramModel.listTimelineObjects(true, tag, null);
+                while (ti.hasNext()) {
+                    TimelineObject to = ti.next();
+                    series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());
+                }
+                ret.addSeries(series);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } else {
+            List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
+            boolean useDefaultKey =
+                    (mwpEntries.size() == 1 && MWPProperties.getDefaultMWPEntry().equals(mwpEntries.get(0)));
+
+            for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
+                String key;
+                if (useDefaultKey) {
+                    key = DEFAULT_KEY;
+                } else {
+                    String intervalWord = mwpEntry.getIntervalCount() == 1 ? "interval" : "intervals";
+                    key = " " + mwpEntry.getPercentile() + "%'ile, " +
+                                mwpEntry.getIntervalCount() + " " + intervalWord;
+                }
+                XYSeries series = new XYSeries(key);
+
+                TimelineIterator ti = histogramModel.listTimelineObjects(false, null, mwpEntry);
+                while (ti.hasNext()) {
+                    TimelineObject to = ti.next();
+                    series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());
+                }
+                ret.addSeries(series);
+            }
         }
-        return series1;
+
+        return ret;
     }
 }

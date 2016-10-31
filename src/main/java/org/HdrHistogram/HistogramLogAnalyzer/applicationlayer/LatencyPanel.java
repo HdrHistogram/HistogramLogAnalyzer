@@ -7,14 +7,12 @@ package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
 import org.HdrHistogram.HistogramLogAnalyzer.charts.PercentileChartBuilder;
 import org.HdrHistogram.HistogramLogAnalyzer.charts.TimelineChartBuilder;
-import org.HdrHistogram.HistogramLogAnalyzer.datalayer.Parser;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.DBConnect;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
 
 import javax.swing.*;
 import java.awt.GridLayout;
 import java.awt.Color;
 import java.io.IOException;
-import java.util.Set;
 
 /*
  * Custom JPanel that contains top (timeline) and bottom (percentile) charts
@@ -25,23 +23,23 @@ class LatencyPanel extends JPanel
 
     private static PercentileChartBuilder percentileChartBuilder = new PercentileChartBuilder();
 
-    LatencyPanel(String hlogFileName, SLAProperties slaProperties) {
+    LatencyPanel(String inputFileName, SLAProperties slaProperties, MWPProperties mwpProperties) {
         ZoomProperty zoomProperty = new ZoomProperty();
 
-        DBConnect db = new DBConnect(((Long) System.currentTimeMillis()).toString());
-        Parser pr = new Parser(db, hlogFileName, null, null);
+        HistogramModel histogramModel = null;
         try {
-            pr.execute();
+            histogramModel = new HistogramModel(inputFileName, null, null, mwpProperties);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Set<String> tags = pr.getTags();
 
         setLayout(new GridLayout(2, 1));
         setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        JPanel timelineChart = timelineChartBuilder.createTimelineChart(tags, db, zoomProperty);
-        JPanel percentileChart = percentileChartBuilder.createPercentileChart(tags, db, slaProperties, zoomProperty, hlogFileName);
+        JPanel timelineChart =
+                timelineChartBuilder.createTimelineChart(histogramModel, zoomProperty);
+        JPanel percentileChart =
+                percentileChartBuilder.createPercentileChart(histogramModel, slaProperties, zoomProperty, mwpProperties);
 
         add(timelineChart);
         add(percentileChart);

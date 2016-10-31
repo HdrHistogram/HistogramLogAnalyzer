@@ -5,8 +5,6 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.SLAProperties.SLAEntry;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -14,33 +12,34 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
-class SLAPanel extends JPanel {
+class MWPPanel extends JPanel {
 
     private JFrame mainframe;
     private JPanel panel;
-    private SLAProperties slaProperties;
+    private MWPProperties MWPProperties;
 
-    private static final int SLA_COLUMNS_NUMBER = 3;
+    private static final int TIMELINE_COLUMNS_NUMBER = 3;
 
-    SLAPanel(JFrame mainframe, SLAProperties slaProperties)
-    {
+
+    MWPPanel(JFrame mainframe, MWPProperties MWPProperties) {
         this.mainframe = mainframe;
-        this.slaProperties = slaProperties;
-        List<SLAEntry> slaEntries = slaProperties.getSLAEntries();
+        this.MWPProperties = MWPProperties;
+        List<org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties.MWPEntry> timelineEntries =
+                MWPProperties.getMWPEntries();
 
         setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        int rowcount = slaEntries.size();
-        panel = new JPanel(new GridLayout(rowcount + 1, SLA_COLUMNS_NUMBER));
+        int rowcount = timelineEntries.size();
+        panel = new JPanel(new GridLayout(rowcount + 1, TIMELINE_COLUMNS_NUMBER));
         panel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         panel.add(new JLabel("Row"));
         panel.add(new JLabel("Percentile(%)"));
-        panel.add(new JLabel("Hiccup(msec)"));
+        panel.add(new JLabel("Interval(count)"));
 
         for (int i = 0; i < rowcount; i++) {
             panel.add(new JLabel(((Integer) (i + 1)).toString()));
-            panel.add(new JTextField(slaEntries.get(i).getPercentile().toString()));
-            panel.add(new JTextField(slaEntries.get(i).getLatency().toString()));
+            panel.add(new JTextField(timelineEntries.get(i).getPercentile().toString()));
+            panel.add(new JTextField(Integer.toString(timelineEntries.get(i).getIntervalCount())));
         }
 
         JPanel ButtonSlab = new JPanel(new GridLayout(3, 2));
@@ -88,32 +87,28 @@ class SLAPanel extends JPanel {
     private void sla_apply() {
         if (sla_isvalid() != 0) {
             if (sla_fillvalues()) {
-                slaProperties.applySLA();
-                JOptionPane.showMessageDialog(mainframe, "Updated!");
+                MWPProperties.applyMWP();
             }
         }
     }
 
     private void sla_addrows() {
-        int rows = panel.getComponentCount() / SLA_COLUMNS_NUMBER - 1;
-        String rtarget = JOptionPane.showInputDialog(null, "Add after which row number? (0-" + (rows - 1) + "): ", "jHiccup", 1);
-        if (rtarget != null) {
-            int userrownumber = Integer.parseInt(rtarget);
-            if (!(userrownumber >= 0 && userrownumber < rows)) {
-                JOptionPane.showMessageDialog(mainframe, "Incorrect choice. Try again! " + userrownumber, "jHiccup", 1);
-                return;
-            }
-            sla_addat(userrownumber + 1);
-        }
+        int rows = panel.getComponentCount() / TIMELINE_COLUMNS_NUMBER;
+        sla_addat(rows);
     }
 
     private void sla_delete() {
-        int rows = panel.getComponentCount() / SLA_COLUMNS_NUMBER - 1;
-        String rtarget = JOptionPane.showInputDialog(null, "Which row to delete? (1-" + (rows-1) + "): ", "jHiccup", 1);
+        int rows = panel.getComponentCount() / TIMELINE_COLUMNS_NUMBER - 1;
+        if (rows == 1) {
+            JOptionPane.showMessageDialog(mainframe, "Last row, unable to delete");
+            return;
+        }
+
+        String rtarget = JOptionPane.showInputDialog(null, "Which row to delete? (1-" + rows + "): ");
         if (rtarget != null) {
             int userrownumber = Integer.parseInt(rtarget);
-            if (!(userrownumber > 0 && userrownumber < rows)) {
-                JOptionPane.showMessageDialog(mainframe, "Incorrect choice. Try again!" + userrownumber, "jHiccup", 1);
+            if (!(userrownumber > 0 && userrownumber <= rows)) {
+                JOptionPane.showMessageDialog(mainframe, "Incorrect choice. Try again!" + userrownumber);
                 return;
             }
             sla_deleteat(userrownumber);
@@ -121,8 +116,8 @@ class SLAPanel extends JPanel {
     }
 
     private int sla_isvalid() {
-        int rowcount = panel.getComponentCount() / SLA_COLUMNS_NUMBER;
-        for (int i = SLA_COLUMNS_NUMBER; i < rowcount * SLA_COLUMNS_NUMBER; i = i + SLA_COLUMNS_NUMBER) {
+        int rowcount = panel.getComponentCount() / TIMELINE_COLUMNS_NUMBER;
+        for (int i = TIMELINE_COLUMNS_NUMBER; i < rowcount * TIMELINE_COLUMNS_NUMBER; i = i + TIMELINE_COLUMNS_NUMBER) {
             JTextField ptxt = (JTextField) panel.getComponent(i + 1);
             JTextField hicptxt = (JTextField) panel.getComponent(i + 2);
             try {
@@ -144,16 +139,16 @@ class SLAPanel extends JPanel {
     }
 
     private void sla_deleteat(int at) {
-        int index = (at + 1) * SLA_COLUMNS_NUMBER;
-        panel.remove(index--);
-        panel.remove(index--);
-        panel.remove(index);
+        int index = (at + 1) * TIMELINE_COLUMNS_NUMBER;
+        panel.remove(--index);
+        panel.remove(--index);
+        panel.remove(--index);
 
         sla_regain();
     }
 
     private void sla_addat(int at) {
-        int index = (at) * SLA_COLUMNS_NUMBER;
+        int index = (at) * TIMELINE_COLUMNS_NUMBER;
         panel.add(new JLabel("Sno"), index++);
         panel.add(new JTextField("*"), index++);
         panel.add(new JTextField("*"), index);
@@ -162,24 +157,25 @@ class SLAPanel extends JPanel {
     }
 
     private void sla_regain() {
-        int rowcount = panel.getComponentCount() / SLA_COLUMNS_NUMBER;
-        for (int i = 3; i < rowcount * SLA_COLUMNS_NUMBER; i = i + SLA_COLUMNS_NUMBER) {
+        int rowcount = panel.getComponentCount() / TIMELINE_COLUMNS_NUMBER;
+        for (int i = 3; i < rowcount * TIMELINE_COLUMNS_NUMBER; i = i + TIMELINE_COLUMNS_NUMBER) {
             JLabel lbl = (JLabel) panel.getComponent(i);
-            lbl.setText(((Integer) (i / SLA_COLUMNS_NUMBER)).toString());
+            lbl.setText(((Integer) (i / TIMELINE_COLUMNS_NUMBER)).toString());
         }
         panel.setLayout(new GridLayout(rowcount, 3));
+        this.repaint();
     }
 
     private boolean sla_fillvalues() {
-        slaProperties.clear();
+        MWPProperties.clear();
         int rowcount = panel.getComponentCount() / 3;
-        for (int i = SLA_COLUMNS_NUMBER; i < rowcount * SLA_COLUMNS_NUMBER; i = i + SLA_COLUMNS_NUMBER) {
+        for (int i = TIMELINE_COLUMNS_NUMBER; i < rowcount * TIMELINE_COLUMNS_NUMBER; i = i + TIMELINE_COLUMNS_NUMBER) {
             JTextField ptxt = (JTextField) panel.getComponent(i + 1);
             JTextField htxt = (JTextField) panel.getComponent(i + 2);
-            SLAEntry slaEntry = new SLAEntry(Double.parseDouble(ptxt.getText()), Double.parseDouble(htxt.getText()));
-            slaProperties.addSLAEntry(slaEntry);
+            org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties.MWPEntry MWPEntry =
+                    new MWPProperties.MWPEntry(Double.parseDouble(ptxt.getText()), Integer.parseInt(htxt.getText()));
+            MWPProperties.addMWPEntry(MWPEntry);
         }
         return true;
     }
-
 }

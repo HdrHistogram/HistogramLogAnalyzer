@@ -14,18 +14,18 @@ public class ConstantsHelper {
 
     private enum LogGeneratorTool {CASSANDRA_STRESS, JHICCUP, UNKNOWN}
     private static LogGeneratorTool logGenTool;
-    private static String currentHlogFileName;
+    private static String currentInputFileName;
 
     private static final String CASSANDRA_STRESS_TOOL_NAME = "Cassandra Stress";
     private static final String JHICCUP_TOOL_NAME = "jHiccup";
 
-    static void detectLogGeneratorTool(String hlogFileName)
+    static void detectLogGeneratorTool(String inputFileName)
             throws IOException
     {
         BufferedReader reader = null;
-        currentHlogFileName = hlogFileName;
+        currentInputFileName = inputFileName;
         try {
-            reader = new BufferedReader(new FileReader(new File(currentHlogFileName)));
+            reader = new BufferedReader(new FileReader(new File(currentInputFileName)));
             String line = reader.readLine();
             if (line.contains(CASSANDRA_STRESS_TOOL_NAME)) {
                 logGenTool = LogGeneratorTool.CASSANDRA_STRESS;
@@ -52,9 +52,9 @@ public class ConstantsHelper {
                 break;
         }
         if (useShortFileName) {
-            title += new File(currentHlogFileName).getName();
+            title += new File(currentInputFileName).getName();
         } else {
-            title += currentHlogFileName;
+            title += currentInputFileName;
         }
         return title;
     }

@@ -35,6 +35,8 @@ The percentile chart plots the observed latency durations at varying percentiles
 
 The tool allows to view SLA (service level agreement) data in the percentile chart. Use “Master SLA” button in toolbar to open new tab and configure SLA values (arbitrary number of percentile/latency pairs). Use “Show SLA” button in toolbar to display SLA in the percentile chart.
 
+The tool also allows to plot multiple percentiles and multiple moving window widths on the timeline chart. Use “Master MWP” button in toolbar to open new tab and configure MWP (multiple window percentile) values (percentile/“interval count” pairs).
+
 Customize charts
 ----------------------------------------------
 
@@ -42,12 +44,12 @@ The tool provides several options to customize the charts:
 
  - Chart properties
 
-Right clicking on chart displays a popup menu. Clicking on “Properties…” menu item opens Editor pane that allows to customize different chart settings (titles, fonts, colors, etc).
+Right-click on chart to open a popup menu and then click on “Properties…” menu item to open "Chart properties" dialog. This dialog allows to customize different chart settings (titles, fonts, colors, etc).
 
  - Zooming functionality
 
-To zoom in - left click inside a chart and drag over an area in the chart to zoom in<br />
-To zoom out - left click inside a chart and drag outside the chart<br />
+To zoom in, left-click inside a chart and drag over an area in the chart<br />
+To zoom out, left-click inside a chart and drag outside the chart<br />
 When zooming in on a range in the timeline chart, the percentile chart changes to represent only the percentiles in that time range.<br />
 
 Snapshot

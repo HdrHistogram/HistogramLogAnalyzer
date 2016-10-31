@@ -5,12 +5,11 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.charts;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.ConstantsHelper;
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.LatencyChartType;
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.SLAProperties;
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.ZoomProperty;
-import org.HdrHistogram.HistogramLogAnalyzer.datalayer.Parser;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.DBConnect;
+import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.*;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.PercentileIterator;
+import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
 import org.jfree.chart.*;
 import org.jfree.chart.axis.LogAxis;
 import org.jfree.chart.axis.NumberAxis;
@@ -29,22 +28,20 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.sql.ResultSet;
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
-import java.util.*;
 import java.util.List;
 
 public class PercentileChartBuilder {
 
-    private Double percentile_maxvalue   = 0.0;
-    private Double percentile_max_cvalue = 0.0;
+    private Double maxLatencyAxisValue = 0.0;
+    private Double maxPercentileAxisValue = 0.0;
 
-    public JPanel createPercentileChart(final Set<String> tags, DBConnect db, final SLAProperties slaProperties,
-                                        final ZoomProperty zoomProperty, final String hlogFileName)
+    public JPanel createPercentileChart(final HistogramModel histogramModel, final SLAProperties slaProperties,
+                                        final ZoomProperty zoomProperty, final MWPProperties MWPProperties)
     {
-        JFreeChart drawable = createPercentileDrawable(tags, db, slaProperties);
+        JFreeChart drawable = createPercentileDrawable(histogramModel, slaProperties);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -96,16 +93,14 @@ public class PercentileChartBuilder {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 ZoomProperty.ZoomValue v = (ZoomProperty.ZoomValue) evt.getNewValue();
-
-                DBConnect newDb = new DBConnect(((Long) System.currentTimeMillis()).toString());
-                Parser pr = new Parser(newDb, hlogFileName, v.getLowerBoundString(), v.getUpperBoundString());
+                HistogramModel newModel = null;
                 try {
-                    pr.execute();
+                    String inputFileName = histogramModel.getInputFileName();
+                    newModel = new HistogramModel(inputFileName, v.getLowerBoundString(), v.getUpperBoundString(), MWPProperties);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
-                JFreeChart drawable = createPercentileDrawable(tags, newDb, slaProperties);
+                JFreeChart drawable = createPercentileDrawable(newModel, slaProperties);
                 chartPanel.setChart(drawable);
             }
         });
@@ -139,7 +134,7 @@ public class PercentileChartBuilder {
         slaProperties.addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                if (evt.getPropertyName().equals("slaReset")) {
+                if (evt.getPropertyName().equals("applySLA")) {
                     XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
                     XYSeries slaSeries = null;
                     // get SLA series
@@ -159,10 +154,10 @@ public class PercentileChartBuilder {
                         int count = slaEntries.size();
                         for (int i = 0; i < count; i++) {
                             SLAProperties.SLAEntry slaEntry = slaEntries.get(i);
-                            slaSeries.add(slaEntry.getPercentileCount(), slaEntry.getLatency());
+                            slaSeries.add(slaEntry.getPercentileAxis(), slaEntry.getLatency());
                             if (i + 1 < count) {
                                 SLAProperties.SLAEntry nextSLAEntry = slaEntries.get(i + 1);
-                                slaSeries.add(slaEntry.getPercentileCount(), nextSLAEntry.getLatency());
+                                slaSeries.add(slaEntry.getPercentileAxis(), nextSLAEntry.getLatency());
                             }
                         }
                         slaEntries.remove(0);
@@ -176,18 +171,13 @@ public class PercentileChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createPercentileDrawable(Set<String> tags, DBConnect db, SLAProperties slaProperties) {
+    private JFreeChart createPercentileDrawable(HistogramModel histogramModel, SLAProperties slaProperties) {
 
         String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.PERCENTILE);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.PERCENTILE);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.PERCENTILE);
         String logAxis    = ConstantsHelper.getLogAxisLabel(LatencyChartType.PERCENTILE);
-
-        XYSeriesCollection sc = new XYSeriesCollection();
-        for (String tag : tags) {
-            sc.addSeries(createXYSeries(tag, db));
-        }
-        sc.addSeries(createSLAXYSeries(slaProperties));
+        XYSeriesCollection sc = createXYSeriesCollection(histogramModel, slaProperties);
 
         JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
             xAxisLabel,
@@ -252,19 +242,19 @@ public class PercentileChartBuilder {
 			}
 		});
         plot.setDomainAxis(0, ll);
-        plot.getDomainAxis(0).setUpperBound(percentile_max_cvalue + (percentile_max_cvalue * 0.4));
-        plot.getRangeAxis(0).setRange(0.0, percentile_maxvalue + 10);
+        plot.getDomainAxis(0).setUpperBound(maxPercentileAxisValue + (maxPercentileAxisValue * 0.4));
+        plot.getRangeAxis(0).setRange(0.0, maxLatencyAxisValue + 10);
         plot.getRangeAxis().setAutoRange(false);
 
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         for (int i = 0; i < plot.getSeriesCount() - 1; i++) {
-            renderer.setSeriesPaint(i, TimelineChartBuilder.Colors.getColor(i));
+            renderer.setSeriesPaint(i, ColorHelper.getColor(i));
             renderer.setSeriesShapesVisible(i, false);
             renderer.setSeriesLinesVisible(i, true);
         }
         int slaIndex = plot.getSeriesCount() - 1;
         renderer.setSeriesVisible(slaIndex, slaProperties.isSLAVisible());
-        renderer.setSeriesPaint(slaIndex, TimelineChartBuilder.Colors.getSLAColor());
+        renderer.setSeriesPaint(slaIndex, ColorHelper.getSLAColor());
         renderer.setSeriesShapesVisible(slaIndex, false);
         renderer.setSeriesStroke(slaIndex, new BasicStroke(2.0f));
 
@@ -278,7 +268,30 @@ public class PercentileChartBuilder {
         return drawable;
     }
 
-    private XYSeries createSLAXYSeries(SLAProperties slaProperties) {
+    private XYSeriesCollection createXYSeriesCollection(HistogramModel histogramModel, SLAProperties slaProperties) {
+        XYSeriesCollection ret = new XYSeriesCollection();
+
+        for (String tag : histogramModel.getTags()) {
+            String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
+            XYSeries series = new XYSeries(tag == null ? defaultTagKey : tag);
+
+            MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(tag);
+            PercentileObject mpo = null;
+            while (mpi.hasNext()) {
+                mpo = mpi.next();
+                maxLatencyAxisValue = mpo.getLatencyAxisValue();
+                maxPercentileAxisValue = mpo.getPercentileAxisValue();
+            }
+
+            PercentileIterator pi = histogramModel.listPercentileObjects(tag, mpo);
+            while (pi.hasNext()) {
+                PercentileObject to = pi.next();
+                series.add(to.getPercentileAxisValue(), to.getLatencyAxisValue());
+            }
+
+            ret.addSeries(series);
+        }
+
         XYSeries series = new XYSeries("SLA");
 
         List<SLAProperties.SLAEntry> slaEntries = slaProperties.getSLAEntries();
@@ -286,43 +299,15 @@ public class PercentileChartBuilder {
         int count = slaEntries.size();
         for (int i = 0; i < count; i++) {
             SLAProperties.SLAEntry slaEntry = slaEntries.get(i);
-            series.add(slaEntry.getPercentileCount(), slaEntry.getLatency());
+            series.add(slaEntry.getPercentileAxis(), slaEntry.getLatency());
             if (i + 1 < count) {
                 SLAProperties.SLAEntry nextSLAEntry = slaEntries.get(i + 1);
-                series.add(slaEntry.getPercentileCount(), nextSLAEntry.getLatency());
+                series.add(slaEntry.getPercentileAxis(), nextSLAEntry.getLatency());
             }
         }
         slaEntries.remove(0);
-        return series;
-    }
+        ret.addSeries(series);
 
-    private XYSeries createXYSeries(String tag, DBConnect db) {
-
-        String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
-        XYSeries series = new XYSeries(tag == null ? defaultTagKey : tag);
-
-        try {
-            String cmd = "select max( cast(value as float) ) as max_value, max(cast(cvalue as float) ) as max_cvalue from j_hst"
-                            + (tag != null ? " where hst_tag='"+ tag + "'": "") + ";";
-
-            ResultSet rs = db.statement.executeQuery(cmd);
-            while (rs.next()) {
-                percentile_maxvalue = rs.getDouble("max_value");
-                percentile_max_cvalue = rs.getDouble("max_cvalue");
-            }
-
-            cmd = "select * from j_hst where value < " + percentile_maxvalue.toString()
-                        + (tag != null ? " and hst_tag='"+ tag + "'": "") + ";";
-            rs = db.statement.executeQuery(cmd);
-            while (rs.next()) {
-                double cvalue = rs.getDouble("cvalue");
-                double value = rs.getDouble("value");
-                series.add(cvalue, value);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return series;
+        return ret;
     }
 }

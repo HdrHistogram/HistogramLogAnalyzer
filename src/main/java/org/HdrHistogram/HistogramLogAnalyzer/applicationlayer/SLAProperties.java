@@ -44,7 +44,7 @@ public class SLAProperties {
         }
 
         // 1/1-percentile
-        public Double getPercentileCount() {
+        public Double getPercentileAxis() {
             Double cvalue = 1 / (1 - getPercentile() / 100);
             if (cvalue.isInfinite()) {
                 cvalue = 1000 / (1 - (99.999) / 100);
@@ -56,7 +56,7 @@ public class SLAProperties {
 
     private String SLA_FILENAME = "SLAdetails.xml";
 
-    public SLAProperties() {
+    SLAProperties() {
         try {
             readPropertiesFromFile();
         } catch (ParserConfigurationException e) {
@@ -96,24 +96,24 @@ public class SLAProperties {
         return isSLAVisible;
     }
 
-    public void toggleSLAVisibility(boolean newValue) {
+    void toggleSLAVisibility(boolean newValue) {
         isSLAVisible = newValue;
         pcs.firePropertyChange("slaShow", !newValue, newValue);
     }
 
-    public void resetSLA() {
-        pcs.firePropertyChange("slaReset", false, true);
+    void applySLA() {
+        pcs.firePropertyChange("applySLA", false, true);
     }
 
     public List<SLAEntry> getSLAEntries() {
         return slaEntries;
     }
 
-    public void clear() {
+    void clear() {
         slaEntries.clear();
     }
 
-    public void addSLAEntry(SLAEntry slaEntry) {
+    void addSLAEntry(SLAEntry slaEntry) {
         slaEntries.add(slaEntry);
     }
 }

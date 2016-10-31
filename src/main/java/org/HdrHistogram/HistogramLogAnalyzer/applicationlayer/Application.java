@@ -56,13 +56,18 @@ import org.jfree.chart.plot.XYPlot;
 public class Application implements ActionListener, Runnable {
 
     private SLAProperties slaProperties = new SLAProperties();
+    private MWPProperties MWPProperties = new MWPProperties();
 
     private JFrame mainframe;
     private DraggableTabbedPane tabbedPane;
     private JPanel toppanel, bottompanel;
 
     private static final String APP_TITLE = "Histogram Log Analyzer";
-    private static final String sla_tabname = "SLA Master";
+    private static final String SLA_MASTER_TABNAME = "SLA Master";
+    private static final String SLA_TOOLTIP_TEXT = "Service level agreement settings";
+
+    private static final String MWP_MASTER_TABNAME = "MWP Master";
+    private static final String MWP_TOOLTIP_TEXT = "Moving window percentile settings";
 
     private JPanel mainPanel;
     private JLabel welcomeLabel;
@@ -84,40 +89,66 @@ public class Application implements ActionListener, Runnable {
     private static String _currentWorkingDirectory = null;
 
     // Properties and command line arguments processing
-    private static final String nameOfjHiccupLogAnalyzerPropertiesFile = ".histogramloganalyzer.properties";
     private static JHiccupViewerConfiguration jHiccupViewerConfiguration = null; // Overall configuration including properties and command line arguments
 
-    public static JHiccupViewerConfiguration getJHiccupViewerConfiguration() {
-        return jHiccupViewerConfiguration;
+    /*
+     * "SLA master"-related
+     */
+    private void openSLAMasterTab() {
+        SLAPanel slaPanel = new SLAPanel(mainframe, slaProperties);
+        tabbedPane.addTab(SLA_MASTER_TABNAME, slaPanel);
+        tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(SLA_MASTER_TABNAME, tabbedPane));
+        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
     }
 
-    private int isSLAtab_open() {
-        if (tabbedPane.getTabCount() != 0) {
-            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-                if (tabbedPane.getTitleAt(i).contains(sla_tabname)) {
-                    return 1;
-                }
-            }
-            return 0;
-        } else {
-            return 1;
+    private boolean isSLAMasterTabOpen() {
+        if (tabbedPane.getTabCount() == 0) {
+            return false;
         }
-    }
-
-    private int is_at_SLAtab() {
-        if (tabbedPane.getTabCount() != 0) {
-            if (tabbedPane.getTitleAt(tabbedPane.getSelectedIndex()).contains(sla_tabname)) {
-                return 1;
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            if (tabbedPane.getTitleAt(i).contains(SLA_MASTER_TABNAME)) {
+                return true;
             }
-            return 0;
-        } else {
-            return 0;
         }
+        return false;
     }
 
-    private void openHlogFile(String hlogFileName) {
+    /*
+     * "MWP master"-related
+     */
+    private void openMWPMasterTab() {
+        MWPPanel mwpPanel = new MWPPanel(mainframe, MWPProperties);
+        tabbedPane.addTab(MWP_MASTER_TABNAME, mwpPanel);
+        tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(MWP_MASTER_TABNAME, tabbedPane));
+        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
+    }
+
+    private boolean isTimelineMasterTabOpen() {
+        if (tabbedPane.getTabCount() == 0) {
+            return false;
+        }
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            if (tabbedPane.getTitleAt(i).contains(MWP_MASTER_TABNAME)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isMasterTabCurrent() {
+        if (tabbedPane.getTabCount() != 0) {
+            if (tabbedPane.getTitleAt(tabbedPane.getSelectedIndex()).contains(SLA_MASTER_TABNAME) ||
+                    tabbedPane.getTitleAt(tabbedPane.getSelectedIndex()).contains(MWP_MASTER_TABNAME))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void openFile(String inputFileName) {
         try {
-            run(hlogFileName);
+            run(inputFileName);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -139,9 +170,6 @@ public class Application implements ActionListener, Runnable {
             gx.drawImage(image, thickness, thickness, null);
             ImageIO.write(brdimg, "PNG", inputfile);
         } catch (Exception except) {
-            System.err.println("HistogramLogAnalyzer: Image generation exception");
-            System.err.println("  Message: " + except.getMessage());
-            System.err.println("  Cause:   " + except.getCause());
             except.printStackTrace();
         }
         return inputfile;
@@ -212,16 +240,10 @@ public class Application implements ActionListener, Runnable {
             String fileToOpen = open_filechooser();
             // fileToOpen is null if any option other than APPROVE_OPTION selected
             if (fileToOpen != null) {
-                openHlogFile(fileToOpen);
+                openFile(fileToOpen);
             }
-
-        } else if (e.getActionCommand().equals("action_sla_tab")) {
-            if (isSLAtab_open() == 0) {
-                add_slatab();
-            }
-
         } else if (e.getActionCommand().equals("action_maxrange")) {
-            if (tabbedPane.getTabCount() != 0 && is_at_SLAtab() == 0) {
+            if (tabbedPane.getTabCount() != 0 && !isMasterTabCurrent()) {
                 JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
                 for (int k = 0; k < p1.getComponentCount(); k++) {
                     JPanel latencyPanel = (JPanel) p1.getComponent(k);
@@ -454,13 +476,34 @@ public class Application implements ActionListener, Runnable {
         bttphoto.addActionListener(this);
         tool.add(bttphoto, BorderLayout.WEST);
 
-        JButton bttsla = new JButton(sla_tabname);
-        bttsla.setActionCommand("action_sla_tab");
-        bttsla.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
-        bttsla.setToolTipText(sla_tabname);
-        bttsla.setMnemonic(KeyEvent.VK_M);
-        bttsla.addActionListener(this);
-        tool.add(bttsla, BorderLayout.WEST);
+        JButton slaMasterButton = new JButton(SLA_MASTER_TABNAME);
+        slaMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
+        slaMasterButton.setToolTipText(SLA_TOOLTIP_TEXT);
+        slaMasterButton.setMnemonic(KeyEvent.VK_S);
+        slaMasterButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!isSLAMasterTabOpen()) {
+                    openSLAMasterTab();
+                }
+            }
+        });
+        tool.add(slaMasterButton, BorderLayout.WEST);
+
+        JButton timelineMasterButton = new JButton(MWP_MASTER_TABNAME);
+        // FIXME: new icon for MWP
+        timelineMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
+        timelineMasterButton.setToolTipText(MWP_TOOLTIP_TEXT);
+        timelineMasterButton.setMnemonic(KeyEvent.VK_T);
+        timelineMasterButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!isTimelineMasterTabOpen()) {
+                    openMWPMasterTab();
+                }
+            }
+        });
+        tool.add(timelineMasterButton, BorderLayout.WEST);
 
         JCheckBox chk_sla = new JCheckBox("Show SLA");
         chk_sla.setToolTipText("Enable/Disable SLA");
@@ -501,7 +544,7 @@ public class Application implements ActionListener, Runnable {
             public void filesDropped(File[] files) {
                 try {
                     localfile = files[0].getCanonicalPath();
-                    openHlogFile(localfile);
+                    openFile(localfile);
                 } catch (IOException except) {
                     except.printStackTrace();
                 }
@@ -532,15 +575,8 @@ public class Application implements ActionListener, Runnable {
 
         String nameOfFileToOpen = jHiccupViewerConfiguration.nameOfJHiccupFileToOpen();
         if (nameOfFileToOpen != null) {
-            openHlogFile(nameOfFileToOpen);
+            openFile(nameOfFileToOpen);
         }
-    }
-
-    private void add_slatab() {
-        SLAPanel slaPanel = new SLAPanel(mainframe, slaProperties);
-        tabbedPane.addTab(sla_tabname, slaPanel);
-        tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(sla_tabname, tabbedPane));
-        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
     }
 
     private JPanel tab_builder(JPanel latencyPanel) {
@@ -555,10 +591,10 @@ public class Application implements ActionListener, Runnable {
         p1.setLayout(new GridLayout(1,2));
     }
 
-    private void add_tabs(String hlogFileName) {
-        JPanel latencyPanel = new LatencyPanel(hlogFileName, slaProperties);
+    private void add_tabs(String inputFileName) {
+        JPanel latencyPanel = new LatencyPanel(inputFileName, slaProperties, MWPProperties);
 
-        if (tabbedPane.getTabCount() != 0 && is_at_SLAtab() == 0) {
+        if (tabbedPane.getTabCount() != 0 && !isMasterTabCurrent()) {
             if (JOptionPane.showConfirmDialog(mainframe,
                     "Open within the current tab?", localfile, JOptionPane.YES_NO_OPTION) == 0) {
                 add_ithere(latencyPanel);
@@ -577,14 +613,14 @@ public class Application implements ActionListener, Runnable {
         mainframe.setTitle(APP_TITLE);
     }
 
-    private void run(String hlogFileName) throws IOException {
-        updateLabel("Please wait... Processing log file " + hlogFileName);
-        clean_all(hlogFileName);
+    private void run(String inputFileName) throws IOException {
+        updateLabel("Please wait... Processing log file " + inputFileName);
+        clean_all(inputFileName);
 
-        ConstantsHelper.detectLogGeneratorTool(hlogFileName);
+        ConstantsHelper.detectLogGeneratorTool(inputFileName);
 
         showMainPanel();
-        add_tabs(hlogFileName);
+        add_tabs(inputFileName);
 
         tabbedPane.repaint();
         SetCursor_ready();

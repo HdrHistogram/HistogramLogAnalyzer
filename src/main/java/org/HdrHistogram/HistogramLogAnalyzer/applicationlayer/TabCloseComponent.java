@@ -70,7 +70,8 @@ public class TabCloseComponent extends JPanel {
 		@Override
         public void actionPerformed(ActionEvent e) {
 		    int index = pane.indexOfTabComponent(TabCloseComponent.this);
-            if(JOptionPane.showConfirmDialog(pane.getParent().getParent(),"Are you sure you want to close the tab?",pane.getTitleAt(index),JOptionPane.YES_NO_OPTION)==0)
+            if(JOptionPane.showConfirmDialog(pane.getParent().getParent(),
+					"Are you sure you want to close the tab?",pane.getTitleAt(index),JOptionPane.YES_NO_OPTION)==0)
 			{
                 if (index != -1) {
                     pane.remove(index);
