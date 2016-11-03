@@ -39,7 +39,8 @@ public class PercentileChartBuilder {
     private Double maxPercentileAxisValue = 0.0;
 
     public JPanel createPercentileChart(final HistogramModel histogramModel, final SLAProperties slaProperties,
-                                        final ZoomProperty zoomProperty, final MWPProperties MWPProperties)
+                                        final ZoomProperty zoomProperty, final MWPProperties MWPProperties,
+                                        final ScaleProperties scaleProperties)
     {
         JFreeChart drawable = createPercentileDrawable(histogramModel, slaProperties);
 
@@ -166,6 +167,17 @@ public class PercentileChartBuilder {
             }
         });
 
+        scaleProperties.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("applyScale")) {
+                    ScaleProperties.ScaleEntry se = (ScaleProperties.ScaleEntry) evt.getNewValue();
+                    XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+                    plot.getRangeAxis(0).setRange(0.0, se.getMaxYValue() + se.getMaxYValue() * 0.1);
+                }
+            }
+        });
+
         // FIXME: uninstall listeners
 
         return chartPanel;
@@ -243,7 +255,7 @@ public class PercentileChartBuilder {
 		});
         plot.setDomainAxis(0, ll);
         plot.getDomainAxis(0).setUpperBound(maxPercentileAxisValue + (maxPercentileAxisValue * 0.4));
-        plot.getRangeAxis(0).setRange(0.0, maxLatencyAxisValue + 10);
+        plot.getRangeAxis(0).setRange(0.0, maxLatencyAxisValue + maxLatencyAxisValue * 0.1);
         plot.getRangeAxis().setAutoRange(false);
 
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();

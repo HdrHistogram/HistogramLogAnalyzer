@@ -8,6 +8,8 @@ package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 import org.HdrHistogram.HistogramLogAnalyzer.charts.PercentileChartBuilder;
 import org.HdrHistogram.HistogramLogAnalyzer.charts.TimelineChartBuilder;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
+import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
 
 import javax.swing.*;
 import java.awt.GridLayout;
@@ -23,10 +25,17 @@ class LatencyPanel extends JPanel
 
     private static PercentileChartBuilder percentileChartBuilder = new PercentileChartBuilder();
 
-    LatencyPanel(String inputFileName, SLAProperties slaProperties, MWPProperties mwpProperties) {
-        ZoomProperty zoomProperty = new ZoomProperty();
+    private HistogramModel histogramModel = null;
+    private ScaleProperties scaleProperties = null;
+    private ScaleProperties.ScaleEntry scaleEntry = null;
 
-        HistogramModel histogramModel = null;
+    LatencyPanel(String inputFileName, SLAProperties slaProperties,
+                 MWPProperties mwpProperties)
+    {
+        ZoomProperty zoomProperty = new ZoomProperty();
+        scaleProperties = new ScaleProperties();
+
+        histogramModel = null;
         try {
             histogramModel = new HistogramModel(inputFileName, null, null, mwpProperties);
         } catch (IOException e) {
@@ -37,11 +46,41 @@ class LatencyPanel extends JPanel
         setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
         JPanel timelineChart =
-                timelineChartBuilder.createTimelineChart(histogramModel, zoomProperty);
+                timelineChartBuilder.createTimelineChart(histogramModel, zoomProperty, scaleProperties);
         JPanel percentileChart =
-                percentileChartBuilder.createPercentileChart(histogramModel, slaProperties, zoomProperty, mwpProperties);
+                percentileChartBuilder.createPercentileChart(histogramModel,
+                        slaProperties, zoomProperty,mwpProperties, scaleProperties);
 
         add(timelineChart);
         add(percentileChart);
+    }
+
+    /*
+     * returns max values on X/Y axis for this percentile chart
+     */
+    ScaleProperties.ScaleEntry getScaleEntry() {
+        if (scaleEntry == null) {
+            double maxLatencyAxisValue = 0.0;
+            double maxPercentileAxisValue = 0.0;
+            for (String tag : histogramModel.getTags()) {
+                MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(tag);
+                PercentileObject mpo;
+                while (mpi.hasNext()) {
+                    mpo = mpi.next();
+                    maxLatencyAxisValue = mpo.getLatencyAxisValue();
+                    maxPercentileAxisValue = mpo.getPercentileAxisValue();
+                }
+            }
+            scaleEntry = new ScaleProperties.ScaleEntry(maxPercentileAxisValue, maxLatencyAxisValue);
+        }
+        return scaleEntry;
+    }
+
+    void scale() {
+        scaleProperties.applyScale(getScaleEntry());
+    }
+
+    void scale(ScaleProperties.ScaleEntry scaleEntry) {
+        scaleProperties.applyScale(scaleEntry);
     }
 }

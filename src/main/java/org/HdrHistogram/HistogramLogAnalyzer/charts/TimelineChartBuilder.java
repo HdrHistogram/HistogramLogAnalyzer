@@ -35,7 +35,8 @@ import java.util.List;
 
 public class TimelineChartBuilder {
 
-    public JPanel createTimelineChart(final HistogramModel model, final ZoomProperty zoomProperty)
+    public JPanel createTimelineChart(final HistogramModel model, final ZoomProperty zoomProperty,
+                                      final ScaleProperties scaleProperties)
     {
         JFreeChart drawable = createTimelineDrawable(model);
 
@@ -110,6 +111,17 @@ public class TimelineChartBuilder {
                 String lowerBoundString = String.valueOf(plot.getDomainAxis().getLowerBound());
                 String upperBoundString = String.valueOf(plot.getDomainAxis().getUpperBound());
                 zoomProperty.zoom(new ZoomProperty.ZoomValue(lowerBoundString, upperBoundString));
+            }
+        });
+
+        scaleProperties.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("applyScale")) {
+                    ScaleProperties.ScaleEntry se = (ScaleProperties.ScaleEntry) evt.getNewValue();
+                    XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+                    plot.getRangeAxis(0).setRange(0.0, se.getMaxYValue() + se.getMaxYValue() * 0.1);
+                }
             }
         });
 

@@ -29,25 +29,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 
 import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.JToolBar;
-import javax.swing.KeyStroke;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.WindowConstants;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
@@ -68,6 +51,9 @@ public class Application implements ActionListener, Runnable {
 
     private static final String MWP_MASTER_TABNAME = "MWP Master";
     private static final String MWP_TOOLTIP_TEXT = "Moving window percentile settings";
+
+    private static final String NORMALIZE_TOOLTIP_TEXT =
+            "Enable/disable normalizing across charts in the current tab";
 
     private JPanel mainPanel;
     private JLabel welcomeLabel;
@@ -419,9 +405,11 @@ public class Application implements ActionListener, Runnable {
         mainframe.setJMenuBar(menuBar);
         JMenu menu_file = new JMenu("File");
         menu_file.setMnemonic(KeyEvent.VK_F);
-
+        JMenu menu_view = new JMenu("View");
+        menu_view.setMnemonic(KeyEvent.VK_V);
         JMenu menu_help = new JMenu("Help");
         menu_help.setMnemonic(KeyEvent.VK_H);
+
         final JMenuItem menuitem_abt_version = new JMenuItem("About");
         menu_help.add(menuitem_abt_version);
         menuitem_abt_version.addActionListener(new ActionListener() {
@@ -448,12 +436,47 @@ public class Application implements ActionListener, Runnable {
             }
         });
 
+        final JCheckBoxMenuItem menu_normalize = new JCheckBoxMenuItem("Normalize");
+        menu_normalize.setMnemonic(KeyEvent.VK_N);
+        menu_normalize.setToolTipText(NORMALIZE_TOOLTIP_TEXT);
+        menu_normalize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                boolean enableNormalizing = menu_normalize.isSelected();
+                JPanel currentPanel = (JPanel) tabbedPane.getSelectedComponent();
+                if (enableNormalizing) {
+                    // find max and use it
+                    double maxYValue = 0.0;
+                    for (int i = 0; i < currentPanel.getComponentCount(); i++) {
+                        LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                        ScaleProperties.ScaleEntry scaleEntry = latencyPanel.getScaleEntry();
+                        maxYValue = Math.max(maxYValue, scaleEntry.getMaxYValue());
+                    }
+                    ScaleProperties.ScaleEntry normalizedScaleEntry =
+                            new ScaleProperties.ScaleEntry(0.0, maxYValue); // ignore X
+                    for (int i = 0; i < currentPanel.getComponentCount(); i++) {
+                        LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                        latencyPanel.scale(normalizedScaleEntry);
+                    }
+                } else {
+                    // use default max values
+                    for (int i = 0; i < currentPanel.getComponentCount(); i++) {
+                        LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                        latencyPanel.scale();
+                    }
+                }
+            }
+        });
+
         menuBar.add(menu_file);
+        menuBar.add(menu_view);
         menuBar.add(menu_help);
 
         menu_file.add(menu_file_open);
         menu_file.addSeparator();
         menu_file.add(menu_file_exit);
+
+        menu_view.add(menu_normalize);
     }
 
     private void create_toolbar() {
