@@ -11,6 +11,7 @@ import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 public class HistogramModel {
@@ -76,8 +77,13 @@ public class HistogramModel {
      */
     private void init() throws IOException {
         for (String tag : tags) {
-            for (MWPProperties.MWPEntry mwpEntry : mwpProperties.getMWPEntries()) {
+            List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
+            for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
                 init(tag, mwpEntry);
+            }
+            // always build data for non-"moving window" (default MWP) entry, needed for percentile chart
+            if (!mwpEntries.contains(MWPProperties.getDefaultMWPEntry())) {
+                init(tag, MWPProperties.getDefaultMWPEntry());
             }
         }
     }
