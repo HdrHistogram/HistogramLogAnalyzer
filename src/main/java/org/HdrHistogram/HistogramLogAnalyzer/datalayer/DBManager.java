@@ -52,11 +52,11 @@ class DBManager {
     void insertTimelineObject(TimelineObject to) {
         try {
             String db_insert_j_percentile = "INSERT INTO j_percentile VALUES(\"" +
-                    String.valueOf(to.timelineAxisValue) + "\",\"" +
-                    String.valueOf(to.latencyAxisValue) + "\",\"" +
-                    to.tag + "\",\"" +
-                    to.mwp_percentile + "\",\"" +
-                    to.mwp_intervalCount + "\");";
+                    String.valueOf(to.getTimelineAxisValue()) + "\",\"" +
+                    String.valueOf(to.getLatencyAxisValue()) + "\",\"" +
+                    to.getTag() + "\",\"" +
+                    to.getMwpPercentile() + "\",\"" +
+                    to.getMwpCountInterval() + "\");";
 
             db.statement.execute(db_insert_j_percentile);
         } catch (Exception e) {

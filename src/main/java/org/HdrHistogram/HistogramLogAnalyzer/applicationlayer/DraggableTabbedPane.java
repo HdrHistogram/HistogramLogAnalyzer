@@ -5,85 +5,225 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
-import java.awt.Component;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
-import javax.swing.JTabbedPane;
+import javax.swing.*;
 
+import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.PlottingModeChooser.PlottingMode;
 
-public class DraggableTabbedPane extends JTabbedPane {
+class DraggableTabbedPane extends JTabbedPane {
 
 	private static final long serialVersionUID = 1L;
-private boolean dragging = false;
-  private Image tabImage = null;
-  private Point currentMouseLocation = null;
-  private int draggedTabIndex = 0;
+    private boolean dragging = false;
+    private Image tabImage = null;
+    private Point currentMouseLocation = null;
+    private int draggedTabIndex = 0;
 
-  public DraggableTabbedPane() {
-    super();
-    addMouseMotionListener(new MouseMotionAdapter() {
-      @Override
-    public void mouseDragged(MouseEvent e) {
+    DraggableTabbedPane() {
+        super();
+        addMouseMotionListener(new MouseMotionAdapter() {
+          @Override
+        public void mouseDragged(MouseEvent e) {
 
-        if(!dragging) {
-          int tabNumber = getUI().tabForCoordinate(DraggableTabbedPane.this, e.getX(), e.getY());
-          if(tabNumber >= 0) {
-            draggedTabIndex = tabNumber;
-            Rectangle bounds = getUI().getTabBounds(DraggableTabbedPane.this, tabNumber);
-            Image totalImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-            Graphics totalGraphics = totalImage.getGraphics();
-            totalGraphics.setClip(bounds);
-            setDoubleBuffered(false);
-            paintComponent(totalGraphics);
+            if(!dragging) {
+              int tabNumber = getUI().tabForCoordinate(DraggableTabbedPane.this, e.getX(), e.getY());
+              if(tabNumber >= 0) {
+                draggedTabIndex = tabNumber;
+                Rectangle bounds = getUI().getTabBounds(DraggableTabbedPane.this, tabNumber);
+                Image totalImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+                Graphics totalGraphics = totalImage.getGraphics();
+                totalGraphics.setClip(bounds);
+                setDoubleBuffered(false);
+                paintComponent(totalGraphics);
 
-            tabImage = new BufferedImage(bounds.width, bounds.height, BufferedImage.TYPE_INT_ARGB);
-            Graphics graphics = tabImage.getGraphics();
-            graphics.drawImage(totalImage, 0, 0, bounds.width, bounds.height, bounds.x, bounds.y, bounds.x + bounds.width, bounds.y+bounds.height, DraggableTabbedPane.this);
+                tabImage = new BufferedImage(bounds.width, bounds.height, BufferedImage.TYPE_INT_ARGB);
+                Graphics graphics = tabImage.getGraphics();
+                graphics.drawImage(totalImage, 0, 0, bounds.width, bounds.height, bounds.x, bounds.y, bounds.x + bounds.width, bounds.y+bounds.height, DraggableTabbedPane.this);
 
-            dragging = true;
-            repaint();
-          }
-        } else {
-          currentMouseLocation = e.getPoint();
-          repaint();
+                dragging = true;
+                repaint();
+              }
+            } else {
+              currentMouseLocation = e.getPoint();
+              repaint();
+            }
+
+            super.mouseDragged(e);
         }
-
-        super.mouseDragged(e);
-      }
     });
 
     addMouseListener(new MouseAdapter() {
-      @Override
-    public void mouseReleased(MouseEvent e) {
+          @Override
+        public void mouseReleased(MouseEvent e) {
 
-        if(dragging) {
-          int tabNumber = getUI().tabForCoordinate(DraggableTabbedPane.this, e.getX(), 10);
-          if(tabNumber >= 0) {
-            Component comp = getComponentAt(draggedTabIndex);
-            String title = getTitleAt(draggedTabIndex);
-            removeTabAt(draggedTabIndex);
-            insertTab(title, null, comp, null, tabNumber);
-            setTabComponentAt(tabNumber, new TabCloseComponent(title, DraggableTabbedPane.this));
+            if(dragging) {
+              int tabNumber = getUI().tabForCoordinate(DraggableTabbedPane.this, e.getX(), 10);
+              if(tabNumber >= 0) {
+                Component comp = getComponentAt(draggedTabIndex);
+                String title = getTitleAt(draggedTabIndex);
+                removeTabAt(draggedTabIndex);
+                insertTab(title, null, comp, null, tabNumber);
+                setTabComponentAt(tabNumber, new TabCloseComponent(title, DraggableTabbedPane.this));
+              }
+            }
+
+            dragging = false;
+            tabImage = null;
           }
-        }
-
-        dragging = false;
-        tabImage = null;
-      }
-    });
-  }
-  @Override
-protected void paintComponent(Graphics g) {
-    super.paintComponent(g);
-    if(dragging && currentMouseLocation != null && tabImage != null) {
-      g.drawImage(tabImage, currentMouseLocation.x, currentMouseLocation.y, this);
+        });
     }
-  }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if(dragging && currentMouseLocation != null && tabImage != null) {
+            g.drawImage(tabImage, currentMouseLocation.x, currentMouseLocation.y, this);
+        }
+    }
+
+    void plotInputFiles(String[] inputFileNames, Application app) throws IOException {
+        boolean multipleFiles = inputFileNames.length > 1;
+        boolean firstFile = getTabCount() == 0;
+        boolean masterTab = isMasterTabCurrent();
+        boolean needNewTab = firstFile || masterTab;
+
+        PlottingMode plottingMode;
+        if (!multipleFiles) {
+            LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
+            if (needNewTab) {
+                add_to_newtab(latencyPanel);
+            } else {
+                plottingMode = PlottingModeChooser.showChooser(app, multipleFiles, PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+                if (plottingMode == PlottingMode.SAME_TAB) {
+                    add_to_currenttab(latencyPanel);
+                } else if (plottingMode == PlottingMode.NEW_TAB) {
+                    add_to_newtab(latencyPanel);
+                }
+            }
+        } else {
+            plottingMode = PlottingModeChooser.showChooser(app, multipleFiles,
+                PlottingMode.SAME_CHART, PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+
+            if (plottingMode == PlottingMode.SAME_CHART) {
+                LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
+                if (needNewTab) {
+                    add_to_newtab(latencyPanel);
+                } else {
+                    add_to_currenttab(latencyPanel);
+                }
+            } else {
+                for (String inputFileName : inputFileNames) {
+                    LatencyPanel latencyPanel = new LatencyPanel(inputFileName, app.getSlaProperties(), app.getMwpProperties());
+                    if (plottingMode == PlottingMode.SAME_TAB && !needNewTab) {
+                        add_to_currenttab(latencyPanel);
+                    } else {
+                        add_to_newtab(latencyPanel);
+                        needNewTab = false;
+                    }
+                }
+
+            }
+        }
+    }
+
+    private void add_to_newtab(LatencyPanel latencyPanel) {
+        String tabTitle = latencyPanel.getTabTitle();
+        insertTab(tabTitle, null, tab_builder(latencyPanel),
+                getMultiLineTooltipText(latencyPanel.getTooltipTexts()), getTabCount());
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(tabTitle, this));
+        setSelectedIndex(getTabCount() - 1);
+    }
+
+    private String updateMultilineTooltipText(String oldTooltipText, String[] tooltipTexts) {
+        String tooltipText = "";
+        for (String tt : tooltipTexts) {
+            tooltipText += "<br>" + tt;
+        }
+        return oldTooltipText.replaceAll("</html>", tooltipText +"</html>");
+    }
+
+    private JPanel tab_builder(LatencyPanel latencyPanel) {
+        JPanel coverPanel = new JPanel(new GridLayout(1,1));
+        coverPanel.add(latencyPanel);
+        return coverPanel;
+    }
+
+    private void add_to_currenttab(LatencyPanel latencyPanel) {
+        JPanel p1 = (JPanel) getSelectedComponent();
+        p1.add(latencyPanel);
+        p1.setLayout(new GridLayout(1,2));
+
+        // update tooltip of the current tab
+        String newTooltipText =
+            updateMultilineTooltipText(getToolTipTextAt(getSelectedIndex()), latencyPanel.getTooltipTexts());
+        setToolTipTextAt(getSelectedIndex(), newTooltipText);
+    }
+
+    // multi-line tooltip needs to be wrapped in html tags
+    private String getMultiLineTooltipText(String[] tooltipTexts) {
+        String ret = "<html>";
+        for (int i = 0; i < tooltipTexts.length; i++) {
+            if (i != 0) {
+                ret += "<br>";
+            }
+            ret += tooltipTexts[i];
+        }
+        ret += "</html>";
+        return ret;
+    }
+
+    /*
+     * SLA/MWP-related methods
+     */
+    boolean isSLAMasterTabOpen() {
+        if (getTabCount() == 0) {
+            return false;
+        }
+        for (int i = 0; i < getTabCount(); i++) {
+            if (getTitleAt(i).contains(Application.SLA_MASTER_TABNAME)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    boolean isTimelineMasterTabOpen() {
+        if (getTabCount() == 0) {
+            return false;
+        }
+        for (int i = 0; i < getTabCount(); i++) {
+            if (getTitleAt(i).contains(Application.MWP_MASTER_TABNAME)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void openSLAMasterTab(Application app) {
+        SLAPanel slaPanel = new SLAPanel(app.getMainFrame(), app.getSlaProperties());
+        addTab(Application.SLA_MASTER_TABNAME, slaPanel);
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.SLA_MASTER_TABNAME, this));
+        setSelectedIndex(getTabCount() - 1);
+    }
+
+    void openMWPMasterTab(Application app) {
+        MWPPanel mwpPanel = new MWPPanel(app.getMainFrame(), app.getMwpProperties());
+        addTab(Application.MWP_MASTER_TABNAME, mwpPanel);
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.MWP_MASTER_TABNAME, this));
+        setSelectedIndex(getTabCount() - 1);
+    }
+
+    boolean isMasterTabCurrent() {
+        if (getTabCount() != 0) {
+            if (getTitleAt(getSelectedIndex()).contains(Application.SLA_MASTER_TABNAME) ||
+                    getTitleAt(getSelectedIndex()).contains(Application.MWP_MASTER_TABNAME))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

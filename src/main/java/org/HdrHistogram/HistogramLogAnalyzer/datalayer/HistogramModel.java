@@ -9,7 +9,9 @@ import org.HdrHistogram.*;
 import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.*;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +25,7 @@ public class HistogramModel {
     private Set<String> tags;
 
     private DBManager dbManager;
+    private LogGeneratorType logGeneratorType;
 
     public HistogramModel(String inputFileName, String startTime, String endTime, MWPProperties mwpProperties)
             throws IOException
@@ -34,11 +37,39 @@ public class HistogramModel {
         this.tags = TagsHelper.listTags(inputFileName);
         this.dbManager = new DBManager();
 
+        detectLogGeneratorType();
         init();
+    }
+
+    private void detectLogGeneratorType() throws IOException {
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(new File(inputFileName)));
+            String line = reader.readLine();
+            if (line.contains(LogGeneratorType.CASSANDRA_STRESS.getDescription())) {
+                logGeneratorType = LogGeneratorType.CASSANDRA_STRESS;
+            } else if (line.contains(LogGeneratorType.JHICCUP.getDescription())) {
+                logGeneratorType = LogGeneratorType.JHICCUP;
+            } else {
+                logGeneratorType = LogGeneratorType.UNKNOWN;
+            }
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
+        }
     }
 
     public String getInputFileName() {
         return inputFileName;
+    }
+
+    public LogGeneratorType getLogGeneratorType() {
+        return logGeneratorType;
+    }
+
+    public String getShortFileName() {
+        return new File(inputFileName).getName();
     }
 
     public Set<String> getTags() {

@@ -93,6 +93,14 @@ public final class ZFileChooser {
         }
     }
 
+    File[] getSelectedFiles() {
+        if (isMac()) {
+            return getFileDialog().getFiles();
+        } else {
+            return getFileChooser().getSelectedFiles();
+        }
+    }
+
     /**
      * @param fil is the File object that contains the information to which to set
      *        the file field
@@ -216,6 +224,14 @@ public final class ZFileChooser {
                     getFileDialog().setFile(dDir.toString());
                 }
             }
+        }
+    }
+
+    void setMultipleMode(boolean enable) {
+        if (isMac()) {
+            getFileDialog().setMultipleMode(enable);
+        } else {
+            getFileChooser().setMultiSelectionEnabled(enable);
         }
     }
 }

@@ -28,21 +28,24 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PercentileChartBuilder {
 
     private Double maxLatencyAxisValue = 0.0;
     private Double maxPercentileAxisValue = 0.0;
 
-    public JPanel createPercentileChart(final HistogramModel histogramModel, final SLAProperties slaProperties,
+    public JPanel createPercentileChart(final List<HistogramModel> histogramModels, final SLAProperties slaProperties,
                                         final ZoomProperty zoomProperty, final MWPProperties MWPProperties,
                                         final ScaleProperties scaleProperties)
     {
-        JFreeChart drawable = createPercentileDrawable(histogramModel, slaProperties);
+        JFreeChart drawable = createPercentileDrawable(histogramModels, slaProperties);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -94,14 +97,19 @@ public class PercentileChartBuilder {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 ZoomProperty.ZoomValue v = (ZoomProperty.ZoomValue) evt.getNewValue();
-                HistogramModel newModel = null;
-                try {
-                    String inputFileName = histogramModel.getInputFileName();
-                    newModel = new HistogramModel(inputFileName, v.getLowerBoundString(), v.getUpperBoundString(), MWPProperties);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                List<HistogramModel> newModels = new ArrayList<>();
+
+                for (HistogramModel model : histogramModels) {
+                    String inputFileName = model.getInputFileName();
+                    try {
+                        newModels.add(new HistogramModel(inputFileName,
+                                v.getLowerBoundString(), v.getUpperBoundString(), MWPProperties));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-                JFreeChart drawable = createPercentileDrawable(newModel, slaProperties);
+
+                JFreeChart drawable = createPercentileDrawable(newModels, slaProperties);
                 chartPanel.setChart(drawable);
             }
         });
@@ -183,13 +191,13 @@ public class PercentileChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createPercentileDrawable(HistogramModel histogramModel, SLAProperties slaProperties) {
+    private JFreeChart createPercentileDrawable(List<HistogramModel> histogramModels, SLAProperties slaProperties) {
 
         String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.PERCENTILE);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.PERCENTILE);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.PERCENTILE);
         String logAxis    = ConstantsHelper.getLogAxisLabel(LatencyChartType.PERCENTILE);
-        XYSeriesCollection sc = createXYSeriesCollection(histogramModel, slaProperties);
+        XYSeriesCollection sc = createXYSeriesCollection(histogramModels, slaProperties);
 
         JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
             xAxisLabel,
@@ -280,28 +288,39 @@ public class PercentileChartBuilder {
         return drawable;
     }
 
-    private XYSeriesCollection createXYSeriesCollection(HistogramModel histogramModel, SLAProperties slaProperties) {
+    private XYSeriesCollection createXYSeriesCollection(List<HistogramModel> histogramModels, SLAProperties slaProperties) {
         XYSeriesCollection ret = new XYSeriesCollection();
 
-        for (String tag : histogramModel.getTags()) {
-            String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
-            XYSeries series = new XYSeries(tag == null ? defaultTagKey : tag);
+        maxLatencyAxisValue = 0.0;
+        maxPercentileAxisValue = 0.0;
+        boolean multipleFiles = histogramModels.size() > 1;
+        for (HistogramModel histogramModel : histogramModels) {
+            for (String tag : histogramModel.getTags()) {
+                String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
+                String key;
+                if (multipleFiles) {
+                    key = histogramModel.getShortFileName();
+                } else {
+                    key = tag == null ? defaultTagKey : tag;
+                }
+                XYSeries series = new XYSeries(key);
 
-            MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(tag);
-            PercentileObject mpo = null;
-            while (mpi.hasNext()) {
-                mpo = mpi.next();
-                maxLatencyAxisValue = mpo.getLatencyAxisValue();
-                maxPercentileAxisValue = mpo.getPercentileAxisValue();
+                MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(tag);
+                PercentileObject mpo = null;
+                while (mpi.hasNext()) {
+                    mpo = mpi.next();
+                    maxLatencyAxisValue = Math.max(maxLatencyAxisValue, mpo.getLatencyAxisValue());
+                    maxPercentileAxisValue = Math.max(maxPercentileAxisValue, mpo.getPercentileAxisValue());
+                }
+
+                PercentileIterator pi = histogramModel.listPercentileObjects(tag, mpo);
+                while (pi.hasNext()) {
+                    PercentileObject to = pi.next();
+                    series.add(to.getPercentileAxisValue(), to.getLatencyAxisValue());
+                }
+
+                ret.addSeries(series);
             }
-
-            PercentileIterator pi = histogramModel.listPercentileObjects(tag, mpo);
-            while (pi.hasNext()) {
-                PercentileObject to = pi.next();
-                series.add(to.getPercentileAxisValue(), to.getLatencyAxisValue());
-            }
-
-            ret.addSeries(series);
         }
 
         XYSeries series = new XYSeries("SLA");

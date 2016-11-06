@@ -7,13 +7,13 @@ package org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer;
 
 public class PercentileObject {
 
-	private double latencyAxisValue;
+    private double latencyAxisValue;
     // 1/(1-percentile)
-	private double percentileAxisValue;
+    private double percentileAxisValue;
 
-	private String tag;
+    private String tag;
 
-	// "insert" object
+    // "insert" object
 	public PercentileObject(double latencyAxisValue, double percentileValue, String tag) {
 		this.latencyAxisValue = latencyAxisValue;
 

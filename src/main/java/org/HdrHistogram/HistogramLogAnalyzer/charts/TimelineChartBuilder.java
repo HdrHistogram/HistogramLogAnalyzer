@@ -30,15 +30,18 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 import java.util.List;
 
 public class TimelineChartBuilder {
 
-    public JPanel createTimelineChart(final HistogramModel model, final ZoomProperty zoomProperty,
+    public JPanel createTimelineChart(final List<HistogramModel> models, final ZoomProperty zoomProperty,
                                       final ScaleProperties scaleProperties)
     {
-        JFreeChart drawable = createTimelineDrawable(model);
+        JFreeChart drawable = createTimelineDrawable(models);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -85,23 +88,32 @@ public class TimelineChartBuilder {
             }
         });
 
-        model.getMwpProperties().addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                if (evt.getPropertyName().equals("applyMWP")) {
-                    HistogramModel newModel = null;
-                    try {
-                        String inputFileName = model.getInputFileName();
-                        MWPProperties mwpProperties = model.getMwpProperties();
-                        newModel = new HistogramModel(inputFileName, null, null, mwpProperties);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    JFreeChart drawable = createTimelineDrawable(newModel);
-                    chartPanel.setChart(drawable);
-                }
+        // tool doesn't support MWP for charts with multiple files
+        // tool doesn't support MWP for files with multiple tags
+        boolean multipleFiles = models.size() > 1;
+        if (!multipleFiles) {
+            final HistogramModel model = models.get(0);
+            boolean multipleTags = model.getTags().size() > 1;
+            if (!multipleTags) {
+                model.getMwpProperties().addPropertyChangeListener(new PropertyChangeListener() {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent evt) {
+                        if (evt.getPropertyName().equals("applyMWP")) {
+                            List<HistogramModel> newModels = new ArrayList<>();
+                            String inputFileName = model.getInputFileName();
+                            MWPProperties mwpProperties = model.getMwpProperties();
+                            try {
+                                newModels.add(new HistogramModel(inputFileName, null, null, mwpProperties));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            JFreeChart drawable = createTimelineDrawable(newModels);
+                            chartPanel.setChart(drawable);
+                        }
+                        }
+                });
             }
-        });
+        }
 
         // zooming on timeline chart updates percentile chart (fire part)
         final XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
@@ -130,12 +142,12 @@ public class TimelineChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createTimelineDrawable(HistogramModel model)
+    private JFreeChart createTimelineDrawable(List<HistogramModel> models)
     {
         String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.TIMELINE);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.TIMELINE);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.TIMELINE);
-        XYSeriesCollection seriesCollection = createXYSeriesCollection(model);
+        XYSeriesCollection seriesCollection = createXYSeriesCollection(models);
 
         JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
                 xAxisLabel,
@@ -171,43 +183,57 @@ public class TimelineChartBuilder {
 
     private static final String DEFAULT_KEY = "Max per interval";
 
-    private XYSeriesCollection createXYSeriesCollection(HistogramModel histogramModel) {
+    private XYSeriesCollection createXYSeriesCollection(List<HistogramModel> histogramModels) {
         XYSeriesCollection ret = new XYSeriesCollection();
 
-        Set<String> tags = histogramModel.getTags();
-        MWPProperties mwpProperties = histogramModel.getMwpProperties();
+        // tool doesn't support MWP for charts with multiple files
+        // tool doesn't support MWP for files with multiple tags
+        boolean multipleFiles = histogramModels.size() > 1;
+        if (!multipleFiles) {
+            HistogramModel histogramModel = histogramModels.get(0);
+            Set<String> tags = histogramModel.getTags();
 
-        // tool doesn't support MWP for log files with multiple tags
-        boolean multipleTags = tags.size() > 1;
+            boolean multipleTags = tags.size() > 1;
+            if (!multipleTags) {
+                MWPProperties mwpProperties = histogramModel.getMwpProperties();
+                List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
+                boolean useDefaultKey =
+                        (mwpEntries.size() == 1 && MWPProperties.getDefaultMWPEntry().equals(mwpEntries.get(0)));
 
-        if (multipleTags) {
-            for (String tag : tags) {
-                XYSeries series = new XYSeries(tag == null ? DEFAULT_KEY : tag);
-
-                TimelineIterator ti = histogramModel.listTimelineObjects(true, tag, null);
-                while (ti.hasNext()) {
-                    TimelineObject to = ti.next();
-                    series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());
-                }
-                ret.addSeries(series);
-            }
-        } else {
-            List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
-            boolean useDefaultKey =
-                    (mwpEntries.size() == 1 && MWPProperties.getDefaultMWPEntry().equals(mwpEntries.get(0)));
-
-            for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
-                String key;
-                if (useDefaultKey) {
-                    key = DEFAULT_KEY;
-                } else {
-                    String intervalWord = mwpEntry.getIntervalCount() == 1 ? "interval" : "intervals";
-                    key = " " + mwpEntry.getPercentile() + "%'ile, " +
+                for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
+                    String key;
+                    if (useDefaultKey) {
+                        key = DEFAULT_KEY;
+                    } else {
+                        String intervalWord = mwpEntry.getIntervalCount() == 1 ? "interval" : "intervals";
+                        key = " " + mwpEntry.getPercentile() + "%'ile, " +
                                 mwpEntry.getIntervalCount() + " " + intervalWord;
+                    }
+                    XYSeries series = new XYSeries(key);
+
+                    TimelineIterator ti = histogramModel.listTimelineObjects(false, null, mwpEntry);
+                    while (ti.hasNext()) {
+                        TimelineObject to = ti.next();
+                        series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());
+                    }
+                    ret.addSeries(series);
+                }
+                return ret;
+            }
+        }
+
+        for (HistogramModel histogramModel : histogramModels) {
+            Set<String> tags = histogramModel.getTags();
+            for (String tag : tags) {
+                String key;
+                if (multipleFiles) {
+                    key = histogramModel.getShortFileName();
+                } else {
+                    key = tag == null ? DEFAULT_KEY : tag;
                 }
                 XYSeries series = new XYSeries(key);
 
-                TimelineIterator ti = histogramModel.listTimelineObjects(false, null, mwpEntry);
+                TimelineIterator ti = histogramModel.listTimelineObjects(true, tag, null);
                 while (ti.hasNext()) {
                     TimelineObject to = ti.next();
                     series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());

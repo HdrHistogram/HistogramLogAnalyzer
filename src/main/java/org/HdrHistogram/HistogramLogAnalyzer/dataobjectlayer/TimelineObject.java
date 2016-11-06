@@ -7,13 +7,13 @@ package org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer;
 
 public class TimelineObject {
 
-    public double timelineAxisValue;
-    public double latencyAxisValue;
+    private double timelineAxisValue;
+    private double latencyAxisValue;
 
-    public String tag;
+    private String tag;
 
-    public String mwp_percentile;
-    public String mwp_intervalCount;
+    private String mwp_percentile;
+    private String mwp_intervalCount;
 
     // "query" object
     public TimelineObject(double timelineAxisValue, double latencyAxisValue) {
@@ -42,4 +42,15 @@ public class TimelineObject {
         return latencyAxisValue;
     }
 
+    public String getTag() {
+        return tag;
+    }
+
+    public String getMwpPercentile() {
+        return mwp_percentile;
+    }
+
+    public String getMwpCountInterval() {
+        return mwp_intervalCount;
+    }
 }

@@ -12,53 +12,6 @@ import java.io.IOException;
 
 public class ConstantsHelper {
 
-    private enum LogGeneratorTool {CASSANDRA_STRESS, JHICCUP, UNKNOWN}
-    private static LogGeneratorTool logGenTool;
-    private static String currentInputFileName;
-
-    private static final String CASSANDRA_STRESS_TOOL_NAME = "Cassandra Stress";
-    private static final String JHICCUP_TOOL_NAME = "jHiccup";
-
-    static void detectLogGeneratorTool(String inputFileName)
-            throws IOException
-    {
-        BufferedReader reader = null;
-        currentInputFileName = inputFileName;
-        try {
-            reader = new BufferedReader(new FileReader(new File(currentInputFileName)));
-            String line = reader.readLine();
-            if (line.contains(CASSANDRA_STRESS_TOOL_NAME)) {
-                logGenTool = LogGeneratorTool.CASSANDRA_STRESS;
-            } else  if (line.contains(JHICCUP_TOOL_NAME)) {
-                logGenTool = LogGeneratorTool.JHICCUP;
-            } else {
-                logGenTool = LogGeneratorTool.UNKNOWN;
-            }
-        } finally {
-            if (reader != null) {
-                reader.close();
-            }
-        }
-    }
-
-    static String getTabTitle(boolean useShortFileName) {
-        String title = "";
-        switch(logGenTool) {
-            case CASSANDRA_STRESS:
-                title = CASSANDRA_STRESS_TOOL_NAME + " - ";
-                break;
-            case JHICCUP:
-                title = JHICCUP_TOOL_NAME + " - ";
-                break;
-        }
-        if (useShortFileName) {
-            title += new File(currentInputFileName).getName();
-        } else {
-            title += currentInputFileName;
-        }
-        return title;
-    }
-
     public static String getLatencyName() {
         return "Latency";
     }

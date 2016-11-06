@@ -12,7 +12,6 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -39,17 +38,21 @@ import org.jfree.chart.plot.XYPlot;
 public class Application implements ActionListener, Runnable {
 
     private SLAProperties slaProperties = new SLAProperties();
-    private MWPProperties MWPProperties = new MWPProperties();
+    private MWPProperties mwpProperties = new MWPProperties();
 
     private JFrame mainframe;
     private DraggableTabbedPane tabbedPane;
     private JPanel toppanel, bottompanel;
 
+    JFrame getMainFrame() {
+        return mainframe;
+    }
+
     private static final String APP_TITLE = "Histogram Log Analyzer";
-    private static final String SLA_MASTER_TABNAME = "SLA Master";
+    static final String SLA_MASTER_TABNAME = "SLA Master";
     private static final String SLA_TOOLTIP_TEXT = "Service level agreement settings";
 
-    private static final String MWP_MASTER_TABNAME = "MWP Master";
+    static final String MWP_MASTER_TABNAME = "MWP Master";
     private static final String MWP_TOOLTIP_TEXT = "Moving window percentile settings";
 
     private static final String NORMALIZE_TOOLTIP_TEXT =
@@ -67,7 +70,6 @@ public class Application implements ActionListener, Runnable {
 
     // File chooser
     private ZFileChooser fc;
-    private static String localfile         = "none";
     private String snapshot_filename = null;
     private static final String _jHiccupLogFileLastSelectedFilesDirectory = ".histogramloganalyzer.lastjhiccuplogdirectory";
 
@@ -77,64 +79,9 @@ public class Application implements ActionListener, Runnable {
     // Properties and command line arguments processing
     private static JHiccupViewerConfiguration jHiccupViewerConfiguration = null; // Overall configuration including properties and command line arguments
 
-    /*
-     * "SLA master"-related
-     */
-    private void openSLAMasterTab() {
-        SLAPanel slaPanel = new SLAPanel(mainframe, slaProperties);
-        tabbedPane.addTab(SLA_MASTER_TABNAME, slaPanel);
-        tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(SLA_MASTER_TABNAME, tabbedPane));
-        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
-    }
-
-    private boolean isSLAMasterTabOpen() {
-        if (tabbedPane.getTabCount() == 0) {
-            return false;
-        }
-        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-            if (tabbedPane.getTitleAt(i).contains(SLA_MASTER_TABNAME)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /*
-     * "MWP master"-related
-     */
-    private void openMWPMasterTab() {
-        MWPPanel mwpPanel = new MWPPanel(mainframe, MWPProperties);
-        tabbedPane.addTab(MWP_MASTER_TABNAME, mwpPanel);
-        tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(MWP_MASTER_TABNAME, tabbedPane));
-        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
-    }
-
-    private boolean isTimelineMasterTabOpen() {
-        if (tabbedPane.getTabCount() == 0) {
-            return false;
-        }
-        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-            if (tabbedPane.getTitleAt(i).contains(MWP_MASTER_TABNAME)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isMasterTabCurrent() {
-        if (tabbedPane.getTabCount() != 0) {
-            if (tabbedPane.getTitleAt(tabbedPane.getSelectedIndex()).contains(SLA_MASTER_TABNAME) ||
-                    tabbedPane.getTitleAt(tabbedPane.getSelectedIndex()).contains(MWP_MASTER_TABNAME))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void openFile(String inputFileName) {
+    private void openFiles(File[] inputFiles) {
         try {
-            run(inputFileName);
+            run(inputFiles);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -189,16 +136,17 @@ public class Application implements ActionListener, Runnable {
         return 1;
     }
 
-    private String open_filechooser() {
+    private File[] chooseInputFiles() {
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
         fc.setPreferredSize(new Dimension(1024,640));
+        fc.setMultipleMode(true);
         fc.setDialogTitle("Open Latency Log File"); // Provides context for the user
         // fc.setIcon();
         int rtn = fc.showOpenDialog();
         if (rtn == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fc.getSelectedFile();
-            saveLastDirectory(selectedFile.getParent());
-            return selectedFile.getPath();
+            File[] inputFiles = fc.getSelectedFiles();
+            saveLastDirectory(inputFiles[0].getParent());
+            return inputFiles;
         }
 
         return null;
@@ -223,13 +171,13 @@ public class Application implements ActionListener, Runnable {
             }
 
         } else if (e.getActionCommand().equals("action_openfile")) {
-            String fileToOpen = open_filechooser();
+            File[] inputFiles = chooseInputFiles();
             // fileToOpen is null if any option other than APPROVE_OPTION selected
-            if (fileToOpen != null) {
-                openFile(fileToOpen);
+            if (inputFiles != null) {
+                openFiles(inputFiles);
             }
         } else if (e.getActionCommand().equals("action_maxrange")) {
-            if (tabbedPane.getTabCount() != 0 && !isMasterTabCurrent()) {
+            if (tabbedPane.getTabCount() != 0 && !tabbedPane.isMasterTabCurrent()) {
                 JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
                 for (int k = 0; k < p1.getComponentCount(); k++) {
                     JPanel latencyPanel = (JPanel) p1.getComponent(k);
@@ -506,8 +454,8 @@ public class Application implements ActionListener, Runnable {
         slaMasterButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (!isSLAMasterTabOpen()) {
-                    openSLAMasterTab();
+                if (!tabbedPane.isSLAMasterTabOpen()) {
+                    tabbedPane.openSLAMasterTab(Application.this);
                 }
             }
         });
@@ -521,8 +469,8 @@ public class Application implements ActionListener, Runnable {
         timelineMasterButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (!isTimelineMasterTabOpen()) {
-                    openMWPMasterTab();
+                if (!tabbedPane.isTimelineMasterTabOpen()) {
+                    tabbedPane.openMWPMasterTab(Application.this);
                 }
             }
         });
@@ -562,15 +510,10 @@ public class Application implements ActionListener, Runnable {
             }
         });
         new FileDrop(mainframe, new FileDrop.Listener() {
-
             @Override
             public void filesDropped(File[] files) {
-                try {
-                    localfile = files[0].getCanonicalPath();
-                    openFile(localfile);
-                } catch (IOException except) {
-                    except.printStackTrace();
-                }
+                // FIXME: broken drag and drop
+                openFiles(files);
             }
         });
         create_menubar();
@@ -596,60 +539,36 @@ public class Application implements ActionListener, Runnable {
 
         mainPanel.add("mainPanel", bottompanel);
 
-        String nameOfFileToOpen = jHiccupViewerConfiguration.nameOfJHiccupFileToOpen();
-        if (nameOfFileToOpen != null) {
-            openFile(nameOfFileToOpen);
+        String inputFileName = jHiccupViewerConfiguration.nameOfJHiccupFileToOpen();
+        if (inputFileName != null) {
+            File[] inputFiles = new File[] {new File(inputFileName)};
+            openFiles(inputFiles);
         }
     }
 
-    private JPanel tab_builder(JPanel latencyPanel) {
-        JPanel coverPanel = new JPanel(new GridLayout(1,1));
-        coverPanel.add(latencyPanel);
-        return coverPanel;
-    }
-
-    private void add_ithere(JPanel latencyPanel) {
-        JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
-        p1.add(latencyPanel);
-        p1.setLayout(new GridLayout(1,2));
-    }
-
-    private void add_tabs(String inputFileName) {
-        JPanel latencyPanel = new LatencyPanel(inputFileName, slaProperties, MWPProperties);
-
-        if (tabbedPane.getTabCount() != 0 && !isMasterTabCurrent()) {
-            if (JOptionPane.showConfirmDialog(mainframe,
-                    "Open within the current tab?", localfile, JOptionPane.YES_NO_OPTION) == 0) {
-                add_ithere(latencyPanel);
-                return;
-            }
+    private static String[] getInputFileNames(File[] inputFiles) {
+        String[] inputFileNames = new String[inputFiles.length];
+        for (int i = 0; i < inputFiles.length; i++) {
+            inputFileNames[i] = inputFiles[i].getAbsolutePath();
         }
-        String shortTabTitle = ConstantsHelper.getTabTitle(true);
-        String fullTabTitle = ConstantsHelper.getTabTitle(false);
-        tabbedPane.insertTab(shortTabTitle, null, tab_builder(latencyPanel), fullTabTitle, tabbedPane.getTabCount());
-        tabbedPane.setTabComponentAt(tabbedPane.getTabCount() - 1, new TabCloseComponent(shortTabTitle, tabbedPane));
-        tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
+        return inputFileNames;
     }
 
-    private void clean_all(String filename) {
-        localfile = filename;
-        mainframe.setTitle(APP_TITLE);
+    SLAProperties getSlaProperties() {
+        return slaProperties;
     }
 
-    private void run(String inputFileName) throws IOException {
-        updateLabel("Please wait... Processing log file " + inputFileName);
-        clean_all(inputFileName);
+    MWPProperties getMwpProperties() {
+        return mwpProperties;
+    }
 
-        ConstantsHelper.detectLogGeneratorTool(inputFileName);
-
+    private void run(File[] inputFiles) throws IOException {
+        updateLabel("Please wait... Processing log files");
         showMainPanel();
-        add_tabs(inputFileName);
 
+        tabbedPane.plotInputFiles(getInputFileNames(inputFiles), this);
         tabbedPane.repaint();
-        SetCursor_ready();
-    }
 
-    private void SetCursor_ready() {
         mainframe.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
     }
 
