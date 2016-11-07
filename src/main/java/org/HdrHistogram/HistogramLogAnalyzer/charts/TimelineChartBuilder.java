@@ -219,13 +219,17 @@ public class TimelineChartBuilder {
         }
 
         for (HistogramModel histogramModel : histogramModels) {
-            Set<String> tags = histogramModel.getTags();
-            for (String tag : tags) {
+            boolean multipleTags = histogramModel.getTags().size() > 1;
+            for (String tag : histogramModel.getTags()) {
                 String key;
                 if (multipleFiles) {
                     key = histogramModel.getShortFileName();
                 } else {
-                    key = tag == null ? DEFAULT_KEY : tag;
+                    if (multipleTags) {
+                        key = tag == null ? "No Tag" : tag;
+                    } else {
+                        key = DEFAULT_KEY;
+                    }
                 }
                 XYSeries series = new XYSeries(key);
 

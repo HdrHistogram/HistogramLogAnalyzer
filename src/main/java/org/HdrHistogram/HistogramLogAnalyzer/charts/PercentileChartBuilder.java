@@ -294,14 +294,19 @@ public class PercentileChartBuilder {
         maxLatencyAxisValue = 0.0;
         maxPercentileAxisValue = 0.0;
         boolean multipleFiles = histogramModels.size() > 1;
+        String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
         for (HistogramModel histogramModel : histogramModels) {
+            boolean multipleTags = histogramModel.getTags().size() > 1;
             for (String tag : histogramModel.getTags()) {
-                String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
                 String key;
                 if (multipleFiles) {
                     key = histogramModel.getShortFileName();
                 } else {
-                    key = tag == null ? defaultTagKey : tag;
+                    if (multipleTags) {
+                        key = tag == null ? "No Tag" : tag;
+                    } else {
+                        key = defaultTagKey;
+                    }
                 }
                 XYSeries series = new XYSeries(key);
 

@@ -44,10 +44,12 @@ public class TagsHelper {
             if (!inited) {
                 String content = new String(((ByteArrayOutputStream)out).toByteArray());
                 String[] lines = content.split(System.getProperty("line.separator"));
-                if (lines.length == 2 && lines[1].equals(NO_TAG_STRING)) {
-                    lines[1] = null; // treat default tag as null
+                for (int i = 0; i < lines.length; i++) {
+                    if (lines[i].equals(NO_TAG_STRING)) {
+                        lines[i] = null; // treat default tag as null
+                    }
                 }
-                tags = new LinkedHashSet<String>();
+                tags = new LinkedHashSet<>();
                 // ignore first line
                 tags.addAll(Arrays.asList(lines).subList(1, lines.length));
                 inited = true;

@@ -384,7 +384,7 @@ public class Application implements ActionListener, Runnable {
             }
         });
 
-        final JCheckBoxMenuItem menu_normalize = new JCheckBoxMenuItem("Normalize");
+        final JCheckBoxMenuItem menu_normalize = new JCheckBoxMenuItem("Normalize Y axis");
         menu_normalize.setMnemonic(KeyEvent.VK_N);
         menu_normalize.setToolTipText(NORMALIZE_TOOLTIP_TEXT);
         menu_normalize.addActionListener(new ActionListener() {
