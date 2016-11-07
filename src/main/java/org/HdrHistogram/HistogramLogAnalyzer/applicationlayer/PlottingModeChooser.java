@@ -77,7 +77,7 @@ class PlottingModeChooser {
 
         private ImageIcon getScaledImage(String imageFileName) {
             ImageIcon imageIcon = new ImageIcon(getClass().getResource(imageFileName));
-            Image scaledImage = imageIcon.getImage().getScaledInstance(128, 128, java.awt.Image.SCALE_SMOOTH);
+            Image scaledImage = imageIcon.getImage().getScaledInstance(256, 256, java.awt.Image.SCALE_SMOOTH);
             return new ImageIcon(scaledImage);
         }
 
@@ -94,7 +94,6 @@ class PlottingModeChooser {
         for (int i = 0; i < plottingModes.length; i++) {
             RadioButtonPanel radioButtonPanel =
                     new RadioButtonPanel(plottingModes[i], group, i == 0, multipleFiles);
-            radioButtonPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
             panel.add(radioButtonPanel);
 
         }
