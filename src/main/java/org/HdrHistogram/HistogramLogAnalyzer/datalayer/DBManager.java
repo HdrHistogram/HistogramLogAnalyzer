@@ -38,7 +38,7 @@ class DBManager {
                     "latencyAxisValue REAL," +
                     "tag REAL," +
                     "mwp_percentile REAL," +
-                    "mwp_intervalCount REAL);";
+                    "mwp_windowLength REAL);";
             db.statement.execute(db_create_j_percentile);
         } catch (Exception e) {
             e.printStackTrace();
@@ -56,7 +56,7 @@ class DBManager {
                     String.valueOf(to.getLatencyAxisValue()) + "\",\"" +
                     to.getTag() + "\",\"" +
                     to.getMwpPercentile() + "\",\"" +
-                    to.getMwpCountInterval() + "\");";
+                    to.getMwpWindowLength() + "\");";
 
             db.statement.execute(db_insert_j_percentile);
         } catch (Exception e) {
@@ -82,11 +82,11 @@ class DBManager {
             ret = "select timelineAxisValue,latencyAxisValue from j_percentile" +
                     " where tag='"+ tag + "'" +
                     " and mwp_percentile='" + defaultMWPEntry.getPercentile() + "'" +
-                    " and mwp_intervalCount='" + defaultMWPEntry.getIntervalCount() + "';";
+                    " and mwp_windowLength='" + defaultMWPEntry.getWindowLength() + "';";
         } else {
             ret = "select timelineAxisValue,latencyAxisValue from j_percentile" +
                     " where mwp_percentile='" + mwpEntry.getPercentile() + "'" +
-                    " and mwp_intervalCount='" + mwpEntry.getIntervalCount() + "';";
+                    " and mwp_windowLength='" + mwpEntry.getWindowLength() + "';";
         }
         return ret;
     }

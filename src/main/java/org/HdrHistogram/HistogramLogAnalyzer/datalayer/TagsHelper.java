@@ -12,12 +12,12 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
-class TagsHelper {
+public class TagsHelper {
 
     /*
      * returns list of tags or null if no tags found (default tag)
      */
-    static Set<String> listTags(String inputFileName)
+    public static Set<String> listTags(String inputFileName)
             throws FileNotFoundException
     {
         TagsExtractor te = new TagsExtractor();

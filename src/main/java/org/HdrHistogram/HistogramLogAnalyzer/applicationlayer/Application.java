@@ -512,7 +512,6 @@ public class Application implements ActionListener, Runnable {
         new FileDrop(mainframe, new FileDrop.Listener() {
             @Override
             public void filesDropped(File[] files) {
-                // FIXME: broken drag and drop
                 openFiles(files);
             }
         });

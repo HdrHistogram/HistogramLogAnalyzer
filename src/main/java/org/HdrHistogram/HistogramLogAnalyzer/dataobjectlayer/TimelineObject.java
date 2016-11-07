@@ -13,7 +13,7 @@ public class TimelineObject {
     private String tag;
 
     private String mwp_percentile;
-    private String mwp_intervalCount;
+    private String mwp_windowLength;
 
     // "query" object
     public TimelineObject(double timelineAxisValue, double latencyAxisValue) {
@@ -23,7 +23,7 @@ public class TimelineObject {
 
     // "insert" object
     public TimelineObject(double timelineAxisValue, double latencyAxisValue,
-                          String tag, String mwp_percentile, String mwp_intervalCount)
+                          String tag, String mwp_percentile, String mwp_windowLength)
     {
         this.timelineAxisValue = timelineAxisValue;
         this.latencyAxisValue = latencyAxisValue;
@@ -31,7 +31,7 @@ public class TimelineObject {
         this.tag = tag;
 
         this.mwp_percentile = mwp_percentile;
-        this.mwp_intervalCount = mwp_intervalCount;
+        this.mwp_windowLength = mwp_windowLength;
     }
 
     public double getTimelineAxisValue() {
@@ -50,7 +50,7 @@ public class TimelineObject {
         return mwp_percentile;
     }
 
-    public String getMwpCountInterval() {
-        return mwp_intervalCount;
+    public String getMwpWindowLength() {
+        return mwp_windowLength;
     }
 }

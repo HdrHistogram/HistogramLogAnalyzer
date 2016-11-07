@@ -13,7 +13,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 
 public class HistogramModel {
@@ -131,14 +133,14 @@ public class HistogramModel {
 
         boolean isMovingWindow = !MWPProperties.getDefaultMWPEntry().equals(mwpEntry);
         Double movingWindowPercentile = mwpEntry.getPercentile();
-        int movingWincowIntervalCount = mwpEntry.getIntervalCount();
+        long movingWindowLengthInMsec = mwpEntry.getWindowLength();
 
         Histogram accumulatedRegularHistogram = null;
         DoubleHistogram accumulatedDoubleHistogram = null;
 
-        EncodableHistogram[] movingWindow = new EncodableHistogram[mwpEntry.getIntervalCount()];
+//        EncodableHistogram[] movingWindow = new EncodableHistogram[mwpEntry.getWindowLength()];
         EncodableHistogram movingWindowSumHistogram;
-        int movingWindowIndex = 0;
+        Queue<EncodableHistogram> movingWindowQueue = new LinkedList<>();
 
         if (intervalHistogram instanceof DoubleHistogram) {
             accumulatedDoubleHistogram = ((DoubleHistogram) intervalHistogram).copy();
@@ -167,24 +169,30 @@ public class HistogramModel {
                 accumulatedRegularHistogram.add((Histogram) intervalHistogram);
             }
 
+            long windowCutOffTimeStamp = intervalHistogram.getEndTimeStamp() - movingWindowLengthInMsec;
             if (isMovingWindow) {
-                EncodableHistogram prevHist = movingWindow[movingWindowIndex];
-                movingWindow[movingWindowIndex] = intervalHistogram;
-
+                // Add the current interval histogram to the moving winow sums:
                 if (movingWindowSumHistogram instanceof DoubleHistogram) {
                     ((DoubleHistogram) movingWindowSumHistogram).add((DoubleHistogram) intervalHistogram);
-                    if (prevHist != null) {
-                        ((DoubleHistogram) movingWindowSumHistogram).subtract((DoubleHistogram) prevHist);
-                    }
                 } else {
                     ((Histogram) movingWindowSumHistogram).add((Histogram) intervalHistogram);
-                    if (prevHist != null) {
-                        ((Histogram) movingWindowSumHistogram).subtract((Histogram) prevHist);
+                }
+                // Remove previous, now-out-of-window interval histograms from moving window:
+                while ((movingWindowQueue.peek() != null) &&
+                        (movingWindowQueue.peek().getEndTimeStamp() <= windowCutOffTimeStamp)) {
+                     EncodableHistogram prevHist = movingWindowQueue.remove();
+                     if (movingWindowSumHistogram instanceof DoubleHistogram) {
+                         if (prevHist != null) {
+                             ((DoubleHistogram) movingWindowSumHistogram).subtract((DoubleHistogram) prevHist);
+                        }
+                    } else {
+                        if (prevHist != null) {
+                            ((Histogram) movingWindowSumHistogram).subtract((Histogram) prevHist);
+                        }
                     }
                 }
-
-                movingWindowIndex++;
-                movingWindowIndex %= movingWincowIntervalCount;
+                // add interval histogram to moving window previous intervals memory:
+                movingWindowQueue.add(intervalHistogram);
             }
 
             double timelineAxisValue = (intervalHistogram.getEndTimeStamp()/1000.0) - reader.getStartTimeSec();
@@ -201,11 +209,11 @@ public class HistogramModel {
             }
 
             String moving_window_percentile     = String.valueOf(movingWindowPercentile);
-            String moving_window_interval_count = String.valueOf(movingWincowIntervalCount);
+            String moving_window_length         = String.valueOf(movingWindowLengthInMsec);
 
             dbManager.insertTimelineObject(
                     new TimelineObject(timelineAxisValue, latencyAxisValue,
-                                       tag, moving_window_percentile, moving_window_interval_count));
+                                       tag, moving_window_percentile, moving_window_length));
 
             intervalHistogram = getIntervalHistogram(reader, tag);
         }

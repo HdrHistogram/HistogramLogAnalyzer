@@ -17,19 +17,23 @@ public class MWPProperties {
     public static class MWPEntry {
 
         private Double percentile;
-        private int intervalCount;
+        private long windowLength; // in msec
 
-        MWPEntry(Double percentile, int intervalCount) {
+        MWPEntry(Double percentile, long windowLength) {
             this.percentile = percentile;
-            this.intervalCount = intervalCount;
+            this.windowLength = windowLength;
         }
 
         public Double getPercentile() {
             return percentile;
         }
 
-        public int getIntervalCount() {
-            return intervalCount;
+        public long getWindowLength() {
+            return windowLength;
+        }
+
+        public boolean isDefaultEntry() {
+            return DEFAULT_MWP_ENTRY.equals(this);
         }
 
         @Override
@@ -41,9 +45,22 @@ public class MWPProperties {
             if (anObject instanceof MWPEntry) {
                 MWPEntry anEntry = (MWPEntry)anObject;
                 return getPercentile().equals(anEntry.getPercentile()) &&
-                        getIntervalCount() == anEntry.getIntervalCount();
+                        getWindowLength() == anEntry.getWindowLength();
             }
             return false;
+        }
+
+        public String toString() {
+            double windowLengthInSeconds = (double) getWindowLength() / 1000;
+            String secondsWording = windowLengthInSeconds == 1 ? " second" : " seconds";
+
+            if (windowLengthInSeconds == (long) windowLengthInSeconds) {
+                return " " + getPercentile() + "%'ile, " +
+                        String.format("%d", (long) windowLengthInSeconds) + secondsWording;
+            } else {
+                return " " + getPercentile() + "%'ile, " +
+                        String.format("%s", windowLengthInSeconds) + secondsWording;
+            }
         }
     }
 
@@ -51,6 +68,7 @@ public class MWPProperties {
         mwpEntries.add(DEFAULT_MWP_ENTRY);
     }
 
+    // FIXME: default entry still contains interval count (but not used)
     private static final MWPEntry DEFAULT_MWP_ENTRY = new MWPEntry(100.0, 1);
 
     public static MWPEntry getDefaultMWPEntry() {
@@ -61,12 +79,26 @@ public class MWPProperties {
         return mwpEntries;
     }
 
+    /*
+     * entries accessible via MWP master tab (default entry not accessible)
+     */
+    List<MWPEntry> getAccessibleMWPEntry() {
+        List<MWPEntry> ret = new ArrayList<>();
+        for (MWPEntry mwpEntry : getMWPEntries()) {
+            if (!DEFAULT_MWP_ENTRY.equals(mwpEntry)) {
+                ret.add(mwpEntry);
+            }
+        }
+        return ret;
+    }
+
     void addMWPEntry(MWPEntry MWPEntry) {
         mwpEntries.add(MWPEntry);
     }
 
-    void clear() {
+    void reset() {
         mwpEntries.clear();
+        mwpEntries.add(DEFAULT_MWP_ENTRY);
     }
 
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);

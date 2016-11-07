@@ -8,11 +8,14 @@ package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Set;
 
 import javax.swing.*;
 
 import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.PlottingModeChooser.PlottingMode;
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TagsHelper;
 
 class DraggableTabbedPane extends JTabbedPane {
 
@@ -104,8 +107,14 @@ class DraggableTabbedPane extends JTabbedPane {
                 }
             }
         } else {
-            plottingMode = PlottingModeChooser.showChooser(app, multipleFiles,
-                PlottingMode.SAME_CHART, PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+            // tool supports plotting multiple (only untagged) files in the same chart
+            if (!containsTaggedFile(inputFileNames)) {
+                plottingMode = PlottingModeChooser.showChooser(app, multipleFiles,
+                        PlottingMode.SAME_CHART, PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+            } else {
+                plottingMode = PlottingModeChooser.showChooser(app, multipleFiles,
+                        PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+            }
 
             if (plottingMode == PlottingMode.SAME_CHART) {
                 LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
@@ -127,6 +136,16 @@ class DraggableTabbedPane extends JTabbedPane {
 
             }
         }
+    }
+
+    boolean containsTaggedFile(String[] inputFileNames) throws FileNotFoundException {
+        for (String inputFileName : inputFileNames) {
+            Set<String> tags = TagsHelper.listTags(inputFileName);
+            if (tags.size() > 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void add_to_newtab(LatencyPanel latencyPanel) {

@@ -70,8 +70,15 @@ class PlottingModeChooser {
             this.add(radioButton, BorderLayout.WEST);
             group.add(radioButton);
             radioButton.setSelected(selected);
-            ImageIcon ii = new ImageIcon(getClass().getResource(plottingMode.getImageFileName()));
-            this.add(new JLabel(ii), BorderLayout.EAST);
+            ImageIcon imageIcon = getScaledImage(plottingMode.getImageFileName());
+            JLabel label = new JLabel(imageIcon);
+            this.add(label, BorderLayout.EAST);
+        }
+
+        private ImageIcon getScaledImage(String imageFileName) {
+            ImageIcon imageIcon = new ImageIcon(getClass().getResource(imageFileName));
+            Image scaledImage = imageIcon.getImage().getScaledInstance(128, 128, java.awt.Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledImage);
         }
 
         static PlottingMode getSelectedPlottingMode() {

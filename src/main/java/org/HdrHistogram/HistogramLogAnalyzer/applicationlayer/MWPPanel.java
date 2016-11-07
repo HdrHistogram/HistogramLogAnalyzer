@@ -11,6 +11,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 class MWPPanel extends JPanel {
 
@@ -24,22 +25,23 @@ class MWPPanel extends JPanel {
     MWPPanel(JFrame mainframe, MWPProperties MWPProperties) {
         this.mainframe = mainframe;
         this.MWPProperties = MWPProperties;
-        List<org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties.MWPEntry> timelineEntries =
-                MWPProperties.getMWPEntries();
+        List<MWPProperties.MWPEntry> mwpEntries =
+                MWPProperties.getAccessibleMWPEntry();
 
         setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        int rowcount = timelineEntries.size();
+        int rowcount = mwpEntries.size();
         panel = new JPanel(new GridLayout(rowcount + 1, TIMELINE_COLUMNS_NUMBER));
         panel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         panel.add(new JLabel("Row"));
         panel.add(new JLabel("Percentile(%)"));
-        panel.add(new JLabel("Interval(count)"));
+        panel.add(new JLabel("Window length(seconds)"));
 
         for (int i = 0; i < rowcount; i++) {
             panel.add(new JLabel(((Integer) (i + 1)).toString()));
-            panel.add(new JTextField(timelineEntries.get(i).getPercentile().toString()));
-            panel.add(new JTextField(Integer.toString(timelineEntries.get(i).getIntervalCount())));
+            panel.add(new JTextField(mwpEntries.get(i).getPercentile().toString()));
+            panel.add(new JTextField(Long.toString(
+                    TimeUnit.MILLISECONDS.toSeconds(mwpEntries.get(i).getWindowLength()))));
         }
 
         JPanel ButtonSlab = new JPanel(new GridLayout(3, 2));
@@ -130,7 +132,7 @@ class MWPPanel extends JPanel {
             try {
                 Double.parseDouble(hicptxt.getText());
             } catch (Exception ee) {
-                JOptionPane.showMessageDialog(mainframe, "Only numeric values allowed as latency pause times. Try again!");
+                JOptionPane.showMessageDialog(mainframe, "Only numeric values allowed as window length. Try again!");
                 hicptxt.grabFocus();
                 return 0;
             }
@@ -167,13 +169,15 @@ class MWPPanel extends JPanel {
     }
 
     private boolean sla_fillvalues() {
-        MWPProperties.clear();
+        MWPProperties.reset();
         int rowcount = panel.getComponentCount() / 3;
         for (int i = TIMELINE_COLUMNS_NUMBER; i < rowcount * TIMELINE_COLUMNS_NUMBER; i = i + TIMELINE_COLUMNS_NUMBER) {
             JTextField ptxt = (JTextField) panel.getComponent(i + 1);
             JTextField htxt = (JTextField) panel.getComponent(i + 2);
-            org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties.MWPEntry MWPEntry =
-                    new MWPProperties.MWPEntry(Double.parseDouble(ptxt.getText()), Integer.parseInt(htxt.getText()));
+            double windowLengthInSeconds = Double.parseDouble(htxt.getText());
+            MWPProperties.MWPEntry MWPEntry =
+                    new MWPProperties.MWPEntry(Double.parseDouble(ptxt.getText()),
+                                                (long) (windowLengthInSeconds * 1000));
             MWPProperties.addMWPEntry(MWPEntry);
         }
         return true;

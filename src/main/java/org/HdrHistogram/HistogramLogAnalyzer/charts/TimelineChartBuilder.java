@@ -31,10 +31,11 @@ import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Set;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class TimelineChartBuilder {
 
@@ -197,17 +198,12 @@ public class TimelineChartBuilder {
             if (!multipleTags) {
                 MWPProperties mwpProperties = histogramModel.getMwpProperties();
                 List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
-                boolean useDefaultKey =
-                        (mwpEntries.size() == 1 && MWPProperties.getDefaultMWPEntry().equals(mwpEntries.get(0)));
-
                 for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
                     String key;
-                    if (useDefaultKey) {
+                    if (mwpEntry.isDefaultEntry()) {
                         key = DEFAULT_KEY;
                     } else {
-                        String intervalWord = mwpEntry.getIntervalCount() == 1 ? "interval" : "intervals";
-                        key = " " + mwpEntry.getPercentile() + "%'ile, " +
-                                mwpEntry.getIntervalCount() + " " + intervalWord;
+                        key = mwpEntry.toString();
                     }
                     XYSeries series = new XYSeries(key);
 
