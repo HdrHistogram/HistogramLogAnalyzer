@@ -84,6 +84,9 @@ class MWPPanel extends JPanel {
 
         add(panel);
         add(ButtonSlab);
+
+        // init MWP tab with empty entry
+        sla_addrows();
     }
 
     private void sla_apply() {
