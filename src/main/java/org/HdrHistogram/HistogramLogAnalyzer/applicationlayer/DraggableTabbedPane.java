@@ -14,7 +14,6 @@ import java.util.Set;
 
 import javax.swing.*;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.PlottingModeChooser.PlottingMode;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TagsHelper;
 
 class DraggableTabbedPane extends JTabbedPane {
@@ -93,30 +92,28 @@ class DraggableTabbedPane extends JTabbedPane {
         boolean masterTab = isMasterTabCurrent();
         boolean needNewTab = firstFile || masterTab;
 
-        PlottingMode plottingMode;
+        PlotFilesMode mode;
         if (!multipleFiles) {
             LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
             if (needNewTab) {
                 add_to_newtab(latencyPanel);
             } else {
-                plottingMode = PlottingModeChooser.showChooser(app, multipleFiles, PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
-                if (plottingMode == PlottingMode.SAME_TAB) {
+                mode = PlotFilesDialog.showDialog(app.getMainFrame(), false);
+                if (mode == PlotFilesMode.SAME_TAB) {
                     add_to_currenttab(latencyPanel);
-                } else if (plottingMode == PlottingMode.NEW_TAB) {
+                } else if (mode == PlotFilesMode.MULTIPLE_TABS) {
                     add_to_newtab(latencyPanel);
                 }
             }
         } else {
             // tool supports plotting multiple (only untagged) files in the same chart
             if (!containsTaggedFile(inputFileNames)) {
-                plottingMode = PlottingModeChooser.showChooser(app, multipleFiles,
-                        PlottingMode.SAME_CHART, PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+                mode = PlotFilesDialog.showDialog(app.getMainFrame(), true);
             } else {
-                plottingMode = PlottingModeChooser.showChooser(app, multipleFiles,
-                        PlottingMode.SAME_TAB, PlottingMode.NEW_TAB);
+                mode = PlotFilesDialog.showDialog(app.getMainFrame(), true, true);
             }
 
-            if (plottingMode == PlottingMode.SAME_CHART) {
+            if (mode == PlotFilesMode.SAME_CHART) {
                 LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
                 if (needNewTab) {
                     add_to_newtab(latencyPanel);
@@ -126,7 +123,7 @@ class DraggableTabbedPane extends JTabbedPane {
             } else {
                 for (String inputFileName : inputFileNames) {
                     LatencyPanel latencyPanel = new LatencyPanel(inputFileName, app.getSlaProperties(), app.getMwpProperties());
-                    if (plottingMode == PlottingMode.SAME_TAB && !needNewTab) {
+                    if (mode == PlotFilesMode.SAME_TAB && !needNewTab) {
                         add_to_currenttab(latencyPanel);
                     } else {
                         add_to_newtab(latencyPanel);
@@ -138,7 +135,7 @@ class DraggableTabbedPane extends JTabbedPane {
         }
     }
 
-    boolean containsTaggedFile(String[] inputFileNames) throws FileNotFoundException {
+    private boolean containsTaggedFile(String[] inputFileNames) throws FileNotFoundException {
         for (String inputFileName : inputFileNames) {
             Set<String> tags = TagsHelper.listTags(inputFileName);
             if (tags.size() > 1) {
