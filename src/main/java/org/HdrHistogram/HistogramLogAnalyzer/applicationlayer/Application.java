@@ -392,6 +392,9 @@ public class Application implements ActionListener, Runnable {
             public void actionPerformed(ActionEvent e) {
                 boolean enableNormalizing = menu_normalize.isSelected();
                 JPanel currentPanel = (JPanel) tabbedPane.getSelectedComponent();
+                if (currentPanel == null) {
+                    return;
+                }
                 if (enableNormalizing) {
                     // find max and use it
                     double maxYValue = 0.0;
@@ -427,27 +430,42 @@ public class Application implements ActionListener, Runnable {
         menu_view.add(menu_normalize);
     }
 
+    private JButton buttonOpenFile;
+    private JButton buttonSnapshot;
+    private JButton slaMasterButton;
+    private JButton timelineMasterButton;
+    private JCheckBox showSLAButton;
+    private JButton maxRangeButton;
+
+    private void enableToolbarButtons(boolean b) {
+        buttonSnapshot.setEnabled(b);
+        slaMasterButton.setEnabled(b);
+        timelineMasterButton.setEnabled(b);
+        showSLAButton.setEnabled(b);
+        maxRangeButton.setEnabled(b);
+    }
+
     private void create_toolbar() {
         JToolBar tool = new JToolBar();
         tool.setFloatable(false);
         tool.setRollover(true);
 
-        JButton bttopen = new JButton("Open");
-        bttopen.setActionCommand("action_openfile");
-        bttopen.setIcon(new ImageIcon(getClass().getResource("icon_open.png")));
-        bttopen.setMnemonic(KeyEvent.VK_O);
-        bttopen.addActionListener(this);
-        tool.add(bttopen, BorderLayout.WEST);
+        buttonOpenFile = new JButton("Open");
+        buttonOpenFile.setActionCommand("action_openfile");
+        buttonOpenFile.setIcon(new ImageIcon(getClass().getResource("icon_open.png")));
+        buttonOpenFile.setMnemonic(KeyEvent.VK_O);
+        buttonOpenFile.addActionListener(this);
+        tool.add(buttonOpenFile, BorderLayout.WEST);
 
-        JButton bttphoto = new JButton("Snapshot");
-        bttphoto.setActionCommand("action_snapshot");
-        bttphoto.setIcon(new ImageIcon(getClass().getResource("icon_photo.png")));
-        bttphoto.setToolTipText("Take Snapshot");
-        bttphoto.setMnemonic(KeyEvent.VK_P);
-        bttphoto.addActionListener(this);
-        tool.add(bttphoto, BorderLayout.WEST);
+        buttonSnapshot = new JButton("Snapshot");
+        buttonSnapshot.setActionCommand("action_snapshot");
+        buttonSnapshot.setIcon(new ImageIcon(getClass().getResource("icon_photo.png")));
+        buttonSnapshot.setToolTipText("Take Snapshot");
+        buttonSnapshot.setMnemonic(KeyEvent.VK_P);
+        buttonSnapshot.addActionListener(this);
+        tool.add(buttonSnapshot, BorderLayout.WEST);
 
-        JButton slaMasterButton = new JButton(SLA_MASTER_TABNAME);
+        slaMasterButton = new JButton(SLA_MASTER_TABNAME);
         slaMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
         slaMasterButton.setToolTipText(SLA_TOOLTIP_TEXT);
         slaMasterButton.setMnemonic(KeyEvent.VK_S);
@@ -461,7 +479,7 @@ public class Application implements ActionListener, Runnable {
         });
         tool.add(slaMasterButton, BorderLayout.WEST);
 
-        JButton timelineMasterButton = new JButton(MWP_MASTER_TABNAME);
+        timelineMasterButton = new JButton(MWP_MASTER_TABNAME);
         // FIXME: new icon for MWP
         timelineMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
         timelineMasterButton.setToolTipText(MWP_TOOLTIP_TEXT);
@@ -476,27 +494,28 @@ public class Application implements ActionListener, Runnable {
         });
         tool.add(timelineMasterButton, BorderLayout.WEST);
 
-        JCheckBox chk_sla = new JCheckBox("Show SLA");
-        chk_sla.setToolTipText("Enable/Disable SLA");
-        chk_sla.setMnemonic(KeyEvent.VK_S);
-        chk_sla.addActionListener(new ActionListener() {
+        showSLAButton = new JCheckBox("Show SLA");
+        showSLAButton.setToolTipText("Enable/Disable SLA");
+        showSLAButton.setMnemonic(KeyEvent.VK_S);
+        showSLAButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 slaProperties.toggleSLAVisibility(((JCheckBox)e.getSource()).isSelected());
             }
         });
 
-        tool.add(chk_sla, BorderLayout.WEST);
+        tool.add(showSLAButton, BorderLayout.WEST);
 
-        JButton bttSetMAXRange = new JButton("MAXRange");
-        bttSetMAXRange.setActionCommand("action_maxrange");
-        bttSetMAXRange.setIcon(new ImageIcon(getClass().getResource(
+        maxRangeButton = new JButton("MaxRange");
+        maxRangeButton.setActionCommand("action_maxrange");
+        maxRangeButton.setIcon(new ImageIcon(getClass().getResource(
                 "icon_maxrange.png")));
-        bttSetMAXRange.setToolTipText("Set MAX Range to both");
-        bttSetMAXRange.setMnemonic(KeyEvent.VK_M);
-        bttSetMAXRange.addActionListener(this);
-        tool.add(bttSetMAXRange, BorderLayout.WEST);
+        maxRangeButton.setToolTipText("Set MAX Range to both");
+        maxRangeButton.setMnemonic(KeyEvent.VK_M);
+        maxRangeButton.addActionListener(this);
+        tool.add(maxRangeButton, BorderLayout.WEST);
 
+        enableToolbarButtons(false);
         toppanel.add(tool);
     }
 
@@ -569,6 +588,7 @@ public class Application implements ActionListener, Runnable {
         tabbedPane.repaint();
 
         mainframe.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+        enableToolbarButtons(true);
     }
 
     @Override
