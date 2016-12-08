@@ -16,6 +16,11 @@ import javax.swing.*;
 
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TagsHelper;
 
+/*
+ * Credit http://stackoverflow.com/questions/60269/how-to-implement-draggable-tab-using-java-swing
+ *
+ * Modified by Dmitry
+ */
 class DraggableTabbedPane extends JTabbedPane {
 
 	private static final long serialVersionUID = 1L;
