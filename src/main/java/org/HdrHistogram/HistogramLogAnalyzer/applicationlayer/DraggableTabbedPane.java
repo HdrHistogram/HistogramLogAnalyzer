@@ -28,9 +28,11 @@ class DraggableTabbedPane extends JTabbedPane {
     private Image tabImage = null;
     private Point currentMouseLocation = null;
     private int draggedTabIndex = 0;
+    private TabsListener tabsListener = null;
 
-    DraggableTabbedPane() {
+    DraggableTabbedPane(final TabsListener tabsListener) {
         super();
+        this.tabsListener = tabsListener;
         addMouseMotionListener(new MouseMotionAdapter() {
           @Override
         public void mouseDragged(MouseEvent e) {
@@ -73,7 +75,8 @@ class DraggableTabbedPane extends JTabbedPane {
                 String title = getTitleAt(draggedTabIndex);
                 removeTabAt(draggedTabIndex);
                 insertTab(title, null, comp, null, tabNumber);
-                setTabComponentAt(tabNumber, new TabCloseComponent(title, DraggableTabbedPane.this));
+                setTabComponentAt(tabNumber, new TabCloseComponent(title, DraggableTabbedPane.this, tabsListener));
+                checkFirstTabOpened();
               }
             }
 
@@ -150,11 +153,18 @@ class DraggableTabbedPane extends JTabbedPane {
         return false;
     }
 
+    private void checkFirstTabOpened() {
+        if (getTabCount() == 1) {
+            tabsListener.firstTabOpened();
+        }
+    }
+
     private void add_to_newtab(LatencyPanel latencyPanel) {
         String tabTitle = latencyPanel.getTabTitle();
         insertTab(tabTitle, null, tab_builder(latencyPanel),
                 getMultiLineTooltipText(latencyPanel.getTooltipTexts()), getTabCount());
-        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(tabTitle, this));
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(tabTitle, this, tabsListener));
+        checkFirstTabOpened();
         setSelectedIndex(getTabCount() - 1);
     }
 
@@ -226,15 +236,17 @@ class DraggableTabbedPane extends JTabbedPane {
     void openSLAMasterTab(Application app) {
         SLAPanel slaPanel = new SLAPanel(app.getMainFrame(), app.getSlaProperties());
         addTab(Application.SLA_MASTER_TABNAME, slaPanel);
-        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.SLA_MASTER_TABNAME, this));
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.SLA_MASTER_TABNAME, this, tabsListener));
         setSelectedIndex(getTabCount() - 1);
+        checkFirstTabOpened();
     }
 
     void openMWPMasterTab(Application app) {
         MWPPanel mwpPanel = new MWPPanel(app.getMainFrame(), app.getMwpProperties());
         addTab(Application.MWP_MASTER_TABNAME, mwpPanel);
-        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.MWP_MASTER_TABNAME, this));
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.MWP_MASTER_TABNAME, this, tabsListener));
         setSelectedIndex(getTabCount() - 1);
+        checkFirstTabOpened();
     }
 
     boolean isMasterTabCurrent() {

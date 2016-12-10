@@ -29,14 +29,16 @@ public class TabCloseComponent extends JPanel {
 	private final JTabbedPane pane;
 	private final JLabel label;
 	private final JButton button = new TabButton();
+	private final TabsListener tabsListener;
 
 	/**
 	 * @param tabTitle
 	 * @param pane
 	 */
-	public TabCloseComponent(String tabTitle, JTabbedPane pane) {
+	public TabCloseComponent(String tabTitle, JTabbedPane pane, TabsListener tabsListener) {
 		super(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		this.pane = pane;
+		this.tabsListener = tabsListener;
 		setOpaque(false);
 		label = new JLabel(tabTitle);
 		add(label);
@@ -75,6 +77,9 @@ public class TabCloseComponent extends JPanel {
 			{
                 if (index != -1) {
                     pane.remove(index);
+					if (pane.getTabCount() == 0) {
+						tabsListener.lastTabClosed();
+					}
                 }
 			}
 		}

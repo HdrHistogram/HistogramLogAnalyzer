@@ -537,7 +537,18 @@ public class Application implements ActionListener, Runnable {
         create_menubar();
         fc = new ZFileChooser(mainframe, new File(getPreviousRunsDirectoryForJHiccupLogFileOpenOrUseCurrentWorkingDirectory()));
 
-        tabbedPane = new DraggableTabbedPane();
+        TabsListener tabsListener = new TabsListener() {
+            @Override
+            public void firstTabOpened() {
+                enableToolbarButtons(true);
+            }
+
+            @Override
+            public void lastTabClosed() {
+                enableToolbarButtons(false);
+            }
+        };
+        tabbedPane = new DraggableTabbedPane(tabsListener);
 
         toppanel = new JPanel(new BorderLayout());
         create_toolbar();
@@ -588,7 +599,6 @@ public class Application implements ActionListener, Runnable {
         tabbedPane.repaint();
 
         mainframe.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-        enableToolbarButtons(true);
     }
 
     @Override
