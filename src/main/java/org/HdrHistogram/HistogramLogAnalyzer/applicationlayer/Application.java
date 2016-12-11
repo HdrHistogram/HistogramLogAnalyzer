@@ -152,71 +152,6 @@ public class Application implements ActionListener, Runnable {
         return null;
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        if (e.getActionCommand().equals("action_cmp_close")) {
-            JButton btt = (JButton) e.getSource();
-            JPanel overpanel = (JPanel) btt.getParent().getParent().getParent();
-            if (overpanel.getComponentCount() != 1) {
-                JTextField t = (JTextField) btt.getParent().getComponent(0);
-                if (JOptionPane.showConfirmDialog(mainframe, "Are you sure?", "Close file: " + t.getText(), JOptionPane.YES_NO_OPTION) == 0) {
-                    for (int i = 0; i < overpanel.getComponentCount(); i++) {
-                        if (overpanel.getComponent(i).equals(btt.getParent().getParent())) {
-                            overpanel.remove(i);
-                        }
-                    }
-                }
-            } else {
-                JOptionPane.showMessageDialog(mainframe, "Close the tab instead");
-            }
-
-        } else if (e.getActionCommand().equals("action_openfile")) {
-            File[] inputFiles = chooseInputFiles();
-            // fileToOpen is null if any option other than APPROVE_OPTION selected
-            if (inputFiles != null) {
-                openFiles(inputFiles);
-            }
-        } else if (e.getActionCommand().equals("action_maxrange")) {
-            if (tabbedPane.getTabCount() != 0 && !tabbedPane.isMasterTabCurrent()) {
-                JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
-                for (int k = 0; k < p1.getComponentCount(); k++) {
-                    JPanel latencyPanel = (JPanel) p1.getComponent(k);
-
-                    ChartPanel cp1 = (ChartPanel) latencyPanel.getComponent(0);
-                    ChartPanel cp2 = (ChartPanel) latencyPanel.getComponent(1);
-                    XYPlot plot1 = (XYPlot) cp1.getChart().getPlot();
-                    XYPlot plot2 = (XYPlot) cp2.getChart().getPlot();
-
-                    Double maxxi = 0.0;
-
-                    if (maxxi < plot1.getRangeAxis().getRange().getUpperBound()) {
-                        maxxi = plot1.getRangeAxis().getRange().getUpperBound();
-                    } else if (maxxi < plot2.getRangeAxis().getRange().getUpperBound()) {
-                        maxxi = plot2.getRangeAxis().getRange().getUpperBound();
-                    }
-                    plot1.getRangeAxis().setRange(0.0, maxxi);
-                    plot2.getRangeAxis().setRange(0.0, maxxi);
-                }
-            }
-
-        } else if (e.getActionCommand().equals("action_snapshot")) {
-            if (tabbedPane.getTabCount() != 0) {
-                    int result = check_snapshotfile();
-                    if (result == 0)
-                        return;
-                    get_snapshot(snapshot_filename);
-                    JOptionPane.showMessageDialog(mainframe, "Successfully saved as: " + snapshot_filename);
-            } else {
-                JOptionPane.showMessageDialog(mainframe, "No data for snapshot");
-            }
-
-        } else {
-            throw new IllegalArgumentException("Illegal argument: " + e.getActionCommand());
-        }
-
-        tabbedPane.repaint();
-    }
-
     private void snapshot_groupfiles(File[] f3, String snapfile) {
         try {
             BufferedImage[] imgs = new BufferedImage[f3.length];
@@ -348,99 +283,264 @@ public class Application implements ActionListener, Runnable {
         }
     }
 
+    /*
+     * Action handlers
+     */
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String actionCommand = e.getActionCommand();
+
+        switch (actionCommand) {
+            case "openHandler":
+                openHandler();
+                break;
+            case "snapshotHandler":
+                snapshotHandler();
+                break;
+            case "configureSLAHandler":
+                configureSLAHandler();
+                break;
+            case "configureMWPHandler":
+                configureMWPHandler();
+                break;
+            case "exitHandler":
+                exitHandler();
+                break;
+            case "normalizeHandler":
+                normalizeHandler();
+                break;
+            case "maxRangeHandler":
+                maxRangeHandler();
+                break;
+            case "showSLAButton":
+                showSLAButton(e);
+                break;
+            case "aboutHandler":
+                aboutHandler();
+                break;
+            default:
+                throw new IllegalArgumentException("Illegal argument: " + e.getActionCommand());
+        }
+
+        tabbedPane.repaint();
+    }
+
+    private void openHandler() {
+        File[] inputFiles = chooseInputFiles();
+        // fileToOpen is null if any option other than APPROVE_OPTION selected
+        if (inputFiles != null) {
+            openFiles(inputFiles);
+        }
+    }
+
+    private void snapshotHandler() {
+        if (tabbedPane.getTabCount() != 0) {
+            int result = check_snapshotfile();
+            if (result == 0)
+                return;
+            get_snapshot(snapshot_filename);
+            JOptionPane.showMessageDialog(mainframe, "Successfully saved as: " + snapshot_filename);
+        } else {
+            JOptionPane.showMessageDialog(mainframe, "No data for snapshot");
+        }
+    }
+
+    private void configureSLAHandler() {
+        if (!tabbedPane.isSLAMasterTabOpen()) {
+            tabbedPane.openSLAMasterTab(Application.this);
+        }
+    }
+
+    private void configureMWPHandler() {
+        if (!tabbedPane.isTimelineMasterTabOpen()) {
+            tabbedPane.openMWPMasterTab(Application.this);
+        }
+    }
+
+    private void exitHandler() {
+        mainframe.dispose();
+    }
+
+    private void normalizeHandler() {
+        boolean enableNormalizing = normalizeMenuItem.isSelected();
+        JPanel currentPanel = (JPanel) tabbedPane.getSelectedComponent();
+        if (currentPanel == null) {
+            return;
+        }
+        if (enableNormalizing) {
+            // find max and use it
+            double maxYValue = 0.0;
+            for (int i = 0; i < currentPanel.getComponentCount(); i++) {
+                LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                ScaleProperties.ScaleEntry scaleEntry = latencyPanel.getScaleEntry();
+                maxYValue = Math.max(maxYValue, scaleEntry.getMaxYValue());
+            }
+            ScaleProperties.ScaleEntry normalizedScaleEntry =
+                    new ScaleProperties.ScaleEntry(0.0, maxYValue); // ignore X
+            for (int i = 0; i < currentPanel.getComponentCount(); i++) {
+                LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                latencyPanel.scale(normalizedScaleEntry);
+            }
+        } else {
+            // use default max values
+            for (int i = 0; i < currentPanel.getComponentCount(); i++) {
+                LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                latencyPanel.scale();
+            }
+        }
+    }
+
+    private void maxRangeHandler() {
+        if (tabbedPane.getTabCount() != 0 && !tabbedPane.isMasterTabCurrent()) {
+            JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
+            for (int k = 0; k < p1.getComponentCount(); k++) {
+                JPanel latencyPanel = (JPanel) p1.getComponent(k);
+
+                ChartPanel cp1 = (ChartPanel) latencyPanel.getComponent(0);
+                ChartPanel cp2 = (ChartPanel) latencyPanel.getComponent(1);
+                XYPlot plot1 = (XYPlot) cp1.getChart().getPlot();
+                XYPlot plot2 = (XYPlot) cp2.getChart().getPlot();
+
+                Double maxxi = 0.0;
+
+                if (maxxi < plot1.getRangeAxis().getRange().getUpperBound()) {
+                    maxxi = plot1.getRangeAxis().getRange().getUpperBound();
+                } else if (maxxi < plot2.getRangeAxis().getRange().getUpperBound()) {
+                    maxxi = plot2.getRangeAxis().getRange().getUpperBound();
+                }
+                plot1.getRangeAxis().setRange(0.0, maxxi);
+                plot2.getRangeAxis().setRange(0.0, maxxi);
+            }
+        }
+    }
+
+    private void showSLAButton(ActionEvent e) {
+        boolean b;
+        Object source = e.getSource();
+        if (source instanceof JCheckBox) {
+            b = ((JCheckBox) source).isSelected();
+        } else if (source instanceof JCheckBoxMenuItem) {
+            b = ((JCheckBoxMenuItem) source).isSelected();
+        } else {
+            throw new RuntimeException("unknown source type: "+source);
+        }
+        slaProperties.toggleSLAVisibility(b);
+    }
+
+    private void aboutHandler() {
+        AboutDialog dialog = new AboutDialog(mainframe);
+        dialog.setVisible(true);
+    }
+
+    private JMenuItem snapshotMenuItem;
+    private JMenuItem configureSLAMenuItem;
+    private JMenuItem configureMWPMenuItem;
+
+    private JCheckBoxMenuItem normalizeMenuItem;
+    private JCheckBoxMenuItem maxRangeMenuItem;
+    private JCheckBoxMenuItem showSLAMenuItem;
+
+    private void enableMenuItems(boolean b) {
+        snapshotMenuItem.setEnabled(b);
+        configureSLAMenuItem.setEnabled(b);
+        configureMWPMenuItem.setEnabled(b);
+        normalizeMenuItem.setEnabled(b);
+        maxRangeMenuItem.setEnabled(b);
+        showSLAMenuItem.setEnabled(b);
+    }
+
     private void create_menubar() {
         JMenuBar menuBar = new JMenuBar();
         mainframe.setJMenuBar(menuBar);
-        JMenu menu_file = new JMenu("File");
-        menu_file.setMnemonic(KeyEvent.VK_F);
-        JMenu menu_view = new JMenu("View");
-        menu_view.setMnemonic(KeyEvent.VK_V);
-        JMenu menu_help = new JMenu("Help");
-        menu_help.setMnemonic(KeyEvent.VK_H);
+        JMenu fileMenu = new JMenu("File");
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+        JMenu viewMenu = new JMenu("View");
+        viewMenu.setMnemonic(KeyEvent.VK_V);
+        JMenu helpMenu = new JMenu("Help");
+        helpMenu.setMnemonic(KeyEvent.VK_H);
 
-        final JMenuItem menuitem_abt_version = new JMenuItem("About");
-        menu_help.add(menuitem_abt_version);
-        menuitem_abt_version.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    AboutDialog dialog = new AboutDialog(mainframe);
-                    dialog.setVisible(true);
-                }
-         });
+        JMenuItem openMenuItem = new JMenuItem("Open", new ImageIcon(getClass().getResource("icon_open.png")));
+        openMenuItem.setMnemonic(KeyEvent.VK_O);
+        openMenuItem.setAccelerator(KeyStroke.getKeyStroke('O', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        openMenuItem.setActionCommand("openHandler");
+        openMenuItem.addActionListener(this);
 
-        JMenuItem menu_file_open = new JMenuItem("Open", new ImageIcon(getClass().getResource("icon_open.png")));
-        menu_file_open.setActionCommand("action_openfile");
-        menu_file_open.setMnemonic(KeyEvent.VK_O);
-        menu_file_open.setAccelerator(KeyStroke.getKeyStroke('O', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-        menu_file_open.addActionListener(this);
+        snapshotMenuItem = new JMenuItem("Snapshot", new ImageIcon(getClass().getResource("icon_photo.png")));
+        snapshotMenuItem.setMnemonic(KeyEvent.VK_P);
+        snapshotMenuItem.setAccelerator(KeyStroke.getKeyStroke('P', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        snapshotMenuItem.setActionCommand("snapshotHandler");
+        snapshotMenuItem.addActionListener(this);
 
-        JMenuItem menu_file_exit = new JMenuItem("Exit");
-        menu_file_exit.setMnemonic(KeyEvent.VK_X);
-        menu_file_exit.setAccelerator(KeyStroke.getKeyStroke('Q', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-        menu_file_exit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                mainframe.dispose();
-            }
-        });
+        configureSLAMenuItem = new JMenuItem("Configure SLA", new ImageIcon(getClass().getResource("icon_sla.png")));
+        configureSLAMenuItem.setMnemonic(KeyEvent.VK_S);
+        configureSLAMenuItem.setAccelerator(KeyStroke.getKeyStroke('S', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        configureSLAMenuItem.setActionCommand("configureSLAHandler");
+        configureSLAMenuItem.addActionListener(this);
 
-        final JCheckBoxMenuItem menu_normalize = new JCheckBoxMenuItem("Normalize Y axis");
-        menu_normalize.setMnemonic(KeyEvent.VK_N);
-        menu_normalize.setToolTipText(NORMALIZE_TOOLTIP_TEXT);
-        menu_normalize.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                boolean enableNormalizing = menu_normalize.isSelected();
-                JPanel currentPanel = (JPanel) tabbedPane.getSelectedComponent();
-                if (currentPanel == null) {
-                    return;
-                }
-                if (enableNormalizing) {
-                    // find max and use it
-                    double maxYValue = 0.0;
-                    for (int i = 0; i < currentPanel.getComponentCount(); i++) {
-                        LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
-                        ScaleProperties.ScaleEntry scaleEntry = latencyPanel.getScaleEntry();
-                        maxYValue = Math.max(maxYValue, scaleEntry.getMaxYValue());
-                    }
-                    ScaleProperties.ScaleEntry normalizedScaleEntry =
-                            new ScaleProperties.ScaleEntry(0.0, maxYValue); // ignore X
-                    for (int i = 0; i < currentPanel.getComponentCount(); i++) {
-                        LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
-                        latencyPanel.scale(normalizedScaleEntry);
-                    }
-                } else {
-                    // use default max values
-                    for (int i = 0; i < currentPanel.getComponentCount(); i++) {
-                        LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
-                        latencyPanel.scale();
-                    }
-                }
-            }
-        });
+        // FIXME: new icon for MWP
+        configureMWPMenuItem = new JMenuItem("Configure MWP", new ImageIcon(getClass().getResource("icon_sla.png")));
+        configureMWPMenuItem.setMnemonic(KeyEvent.VK_T);
+        configureMWPMenuItem.setAccelerator(KeyStroke.getKeyStroke('T', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        configureMWPMenuItem.setActionCommand("configureMWPHandler");
+        configureMWPMenuItem.addActionListener(this);
 
-        menuBar.add(menu_file);
-        menuBar.add(menu_view);
-        menuBar.add(menu_help);
+        JMenuItem exitMenuItem = new JMenuItem("Exit");
+        exitMenuItem.setMnemonic(KeyEvent.VK_X);
+        exitMenuItem.setAccelerator(KeyStroke.getKeyStroke('Q', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        exitMenuItem.setActionCommand("exitHandler");
+        exitMenuItem.addActionListener(this);
 
-        menu_file.add(menu_file_open);
-        menu_file.addSeparator();
-        menu_file.add(menu_file_exit);
+        normalizeMenuItem = new JCheckBoxMenuItem("Normalize Y axis");
+        normalizeMenuItem.setMnemonic(KeyEvent.VK_N);
+        normalizeMenuItem.setToolTipText(NORMALIZE_TOOLTIP_TEXT);
+        normalizeMenuItem.setActionCommand("normalizeHandler");
+        normalizeMenuItem.addActionListener(this);
 
-        menu_view.add(menu_normalize);
+        maxRangeMenuItem = new JCheckBoxMenuItem("MaxRange");
+        maxRangeMenuItem.setMnemonic(KeyEvent.VK_M);
+        maxRangeMenuItem.setToolTipText("Set MAX Range to both");
+        maxRangeMenuItem.setActionCommand("maxRangeHandler");
+        maxRangeMenuItem.addActionListener(this);
+
+        showSLAMenuItem = new JCheckBoxMenuItem("Show SLA");
+        showSLAMenuItem.setMnemonic(KeyEvent.VK_S);
+        showSLAMenuItem.setToolTipText("Enable/Disable SLA");
+        showSLAMenuItem.setActionCommand("showSLAButton");
+        showSLAMenuItem.addActionListener(this);
+
+        JMenuItem aboutMenuItem = new JMenuItem("About");
+        aboutMenuItem.setActionCommand("aboutHandler");
+        aboutMenuItem.addActionListener(this);
+
+        menuBar.add(fileMenu);
+        menuBar.add(viewMenu);
+        menuBar.add(helpMenu);
+
+        fileMenu.add(openMenuItem);
+        fileMenu.add(snapshotMenuItem);
+        fileMenu.addSeparator();
+        fileMenu.add(configureSLAMenuItem);
+        fileMenu.add(configureMWPMenuItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitMenuItem);
+
+        viewMenu.add(normalizeMenuItem);
+        viewMenu.add(maxRangeMenuItem);
+        viewMenu.add(showSLAMenuItem);
+
+        helpMenu.add(aboutMenuItem);
     }
 
-    private JButton buttonOpenFile;
-    private JButton buttonSnapshot;
+    private JButton snapshotButton;
     private JButton slaMasterButton;
-    private JButton timelineMasterButton;
+    private JButton mwpMasterButton;
     private JCheckBox showSLAButton;
     private JButton maxRangeButton;
 
     private void enableToolbarButtons(boolean b) {
-        buttonSnapshot.setEnabled(b);
+        snapshotButton.setEnabled(b);
         slaMasterButton.setEnabled(b);
-        timelineMasterButton.setEnabled(b);
+        mwpMasterButton.setEnabled(b);
         showSLAButton.setEnabled(b);
         maxRangeButton.setEnabled(b);
     }
@@ -450,72 +550,55 @@ public class Application implements ActionListener, Runnable {
         tool.setFloatable(false);
         tool.setRollover(true);
 
-        buttonOpenFile = new JButton("Open");
-        buttonOpenFile.setActionCommand("action_openfile");
-        buttonOpenFile.setIcon(new ImageIcon(getClass().getResource("icon_open.png")));
-        buttonOpenFile.setMnemonic(KeyEvent.VK_O);
-        buttonOpenFile.addActionListener(this);
-        tool.add(buttonOpenFile, BorderLayout.WEST);
+        JButton openButton = new JButton("Open");
+        openButton.setIcon(new ImageIcon(getClass().getResource("icon_open.png")));
+        openButton.setMnemonic(KeyEvent.VK_O);
+        openButton.setActionCommand("openHandler");
+        openButton.addActionListener(this);
+        tool.add(openButton, BorderLayout.WEST);
 
-        buttonSnapshot = new JButton("Snapshot");
-        buttonSnapshot.setActionCommand("action_snapshot");
-        buttonSnapshot.setIcon(new ImageIcon(getClass().getResource("icon_photo.png")));
-        buttonSnapshot.setToolTipText("Take Snapshot");
-        buttonSnapshot.setMnemonic(KeyEvent.VK_P);
-        buttonSnapshot.addActionListener(this);
-        tool.add(buttonSnapshot, BorderLayout.WEST);
+        snapshotButton = new JButton("Snapshot");
+        snapshotButton.setIcon(new ImageIcon(getClass().getResource("icon_photo.png")));
+        snapshotButton.setToolTipText("Take Snapshot");
+        snapshotButton.setMnemonic(KeyEvent.VK_P);
+        snapshotButton.setActionCommand("snapshotHandler");
+        snapshotButton.addActionListener(this);
+        tool.add(snapshotButton, BorderLayout.WEST);
 
         slaMasterButton = new JButton(SLA_MASTER_TABNAME);
         slaMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
         slaMasterButton.setToolTipText(SLA_TOOLTIP_TEXT);
         slaMasterButton.setMnemonic(KeyEvent.VK_S);
-        slaMasterButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!tabbedPane.isSLAMasterTabOpen()) {
-                    tabbedPane.openSLAMasterTab(Application.this);
-                }
-            }
-        });
+        slaMasterButton.setActionCommand("configureSLAHandler");
+        slaMasterButton.addActionListener(this);
         tool.add(slaMasterButton, BorderLayout.WEST);
 
-        timelineMasterButton = new JButton(MWP_MASTER_TABNAME);
+        mwpMasterButton = new JButton(MWP_MASTER_TABNAME);
         // FIXME: new icon for MWP
-        timelineMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
-        timelineMasterButton.setToolTipText(MWP_TOOLTIP_TEXT);
-        timelineMasterButton.setMnemonic(KeyEvent.VK_T);
-        timelineMasterButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!tabbedPane.isTimelineMasterTabOpen()) {
-                    tabbedPane.openMWPMasterTab(Application.this);
-                }
-            }
-        });
-        tool.add(timelineMasterButton, BorderLayout.WEST);
+        mwpMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
+        mwpMasterButton.setToolTipText(MWP_TOOLTIP_TEXT);
+        mwpMasterButton.setMnemonic(KeyEvent.VK_T);
+        mwpMasterButton.setActionCommand("configureMWPHandler");
+        mwpMasterButton.addActionListener(this);
+        tool.add(mwpMasterButton, BorderLayout.WEST);
 
         showSLAButton = new JCheckBox("Show SLA");
         showSLAButton.setToolTipText("Enable/Disable SLA");
         showSLAButton.setMnemonic(KeyEvent.VK_S);
-        showSLAButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                slaProperties.toggleSLAVisibility(((JCheckBox)e.getSource()).isSelected());
-            }
-        });
-
+        showSLAButton.setActionCommand("showSLAButton");
+        showSLAButton.addActionListener(this);
         tool.add(showSLAButton, BorderLayout.WEST);
 
         maxRangeButton = new JButton("MaxRange");
-        maxRangeButton.setActionCommand("action_maxrange");
-        maxRangeButton.setIcon(new ImageIcon(getClass().getResource(
-                "icon_maxrange.png")));
+        maxRangeButton.setActionCommand("maxRangeHandler");
+        maxRangeButton.setIcon(new ImageIcon(getClass().getResource("icon_maxrange.png")));
         maxRangeButton.setToolTipText("Set MAX Range to both");
         maxRangeButton.setMnemonic(KeyEvent.VK_M);
         maxRangeButton.addActionListener(this);
         tool.add(maxRangeButton, BorderLayout.WEST);
 
         enableToolbarButtons(false);
+        enableMenuItems(false);
         toppanel.add(tool);
     }
 
@@ -541,11 +624,13 @@ public class Application implements ActionListener, Runnable {
             @Override
             public void firstTabOpened() {
                 enableToolbarButtons(true);
+                enableMenuItems(true);
             }
 
             @Override
             public void lastTabClosed() {
                 enableToolbarButtons(false);
+                enableMenuItems(false);
             }
         };
         tabbedPane = new DraggableTabbedPane(tabsListener);
