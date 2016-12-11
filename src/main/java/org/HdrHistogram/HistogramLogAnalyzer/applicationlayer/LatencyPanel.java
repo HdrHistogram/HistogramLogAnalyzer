@@ -61,7 +61,7 @@ class LatencyPanel extends JPanel
         setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
         JPanel timelineChart =
-                timelineChartBuilder.createTimelineChart(histogramModels, zoomProperty, scaleProperties);
+                timelineChartBuilder.createTimelineChart(histogramModels, zoomProperty, mwpProperties, scaleProperties);
         JPanel percentileChart =
                 percentileChartBuilder.createPercentileChart(histogramModels,
                         slaProperties, zoomProperty,mwpProperties, scaleProperties);

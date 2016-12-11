@@ -14,6 +14,8 @@ public class MWPProperties {
 
     private List<MWPEntry> mwpEntries = new ArrayList<MWPEntry>();
 
+    private boolean isMWPVisible = false;
+
     public static class MWPEntry {
 
         private Double percentile;
@@ -111,8 +113,21 @@ public class MWPProperties {
         pcs.removePropertyChangeListener(listener);
     }
 
+    public boolean isMWPVisible() {
+        return isMWPVisible;
+    }
+
+    void toggleMWPVisibility(boolean newValue) {
+        isMWPVisible = newValue;
+        pcs.firePropertyChange("mwpShow", !newValue, newValue);
+    }
+
     void applyMWP() {
         pcs.firePropertyChange("applyMWP", false, true);
+    }
+
+    public boolean isShowMWPUnlocked() {
+        return mwpEntries.size() > 1;
     }
 
 }

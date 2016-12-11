@@ -40,9 +40,9 @@ import java.util.concurrent.TimeUnit;
 public class TimelineChartBuilder {
 
     public JPanel createTimelineChart(final List<HistogramModel> models, final ZoomProperty zoomProperty,
-                                      final ScaleProperties scaleProperties)
+                                      final MWPProperties mwpProperties, final ScaleProperties scaleProperties)
     {
-        JFreeChart drawable = createTimelineDrawable(models);
+        JFreeChart drawable = createTimelineDrawable(models, mwpProperties);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -108,13 +108,38 @@ public class TimelineChartBuilder {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            JFreeChart drawable = createTimelineDrawable(newModels);
+                            JFreeChart drawable = createTimelineDrawable(newModels, mwpProperties);
                             chartPanel.setChart(drawable);
                         }
                         }
                 });
             }
         }
+
+        // enabling/disabling MWP checkbox changes visibility of this MWP lines on chart
+        mwpProperties.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("mwpShow")) {
+                    Boolean b = (Boolean) evt.getNewValue();
+                    XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+                    XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+
+                    XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+                    for (int i = 0; i < dataset.getSeriesCount(); i++) {
+                        XYSeries series = dataset.getSeries(i);
+                        String key = (String) series.getKey();
+                        if (key.contains("%'ile")) {
+                            if (b) {
+                                renderer.setSeriesVisible(i, true);
+                            } else {
+                                renderer.setSeriesVisible(i, false);
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         // zooming on timeline chart updates percentile chart (fire part)
         final XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
@@ -143,7 +168,7 @@ public class TimelineChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createTimelineDrawable(List<HistogramModel> models)
+    private JFreeChart createTimelineDrawable(List<HistogramModel> models, MWPProperties mwpProperties)
     {
         String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.TIMELINE);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.TIMELINE);
@@ -169,6 +194,19 @@ public class TimelineChartBuilder {
             renderer.setSeriesPaint(i, ColorHelper.getColor(i));
             renderer.setSeriesShapesVisible(i, false);
             renderer.setSeriesLinesVisible(i, true);
+        }
+
+        XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+        for (int i = 0; i < dataset.getSeriesCount(); i++) {
+            XYSeries series = dataset.getSeries(i);
+            String key = (String) series.getKey();
+            if (key.contains("%'ile")) {
+                if (mwpProperties.isMWPVisible()) {
+                    renderer.setSeriesVisible(i, true);
+                } else {
+                    renderer.setSeriesVisible(i, false);
+                }
+            }
         }
 
         LegendTitle legend = drawable.getLegend();

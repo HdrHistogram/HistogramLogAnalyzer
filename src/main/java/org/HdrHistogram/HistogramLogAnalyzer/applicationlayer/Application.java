@@ -20,6 +20,8 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.io.BufferedReader;
@@ -315,6 +317,9 @@ public class Application implements ActionListener, Runnable {
             case "showSLAButton":
                 showSLAButton(e);
                 break;
+            case "showMWPButton":
+                showMWPButton(e);
+                break;
             case "aboutHandler":
                 aboutHandler();
                 break;
@@ -425,6 +430,23 @@ public class Application implements ActionListener, Runnable {
             throw new RuntimeException("unknown source type: "+source);
         }
         slaProperties.toggleSLAVisibility(b);
+        showSLAMenuItem.setSelected(b);
+        showSLAButton.setSelected(b);
+    }
+
+    private void showMWPButton(ActionEvent e) {
+        boolean b;
+        Object source = e.getSource();
+        if (source instanceof JCheckBox) {
+            b = ((JCheckBox) source).isSelected();
+        } else if (source instanceof JCheckBoxMenuItem) {
+            b = ((JCheckBoxMenuItem) source).isSelected();
+        } else {
+            throw new RuntimeException("unknown source type: "+source);
+        }
+        mwpProperties.toggleMWPVisibility(b);
+        showMWPMenuItem.setSelected(b);
+        showMWPButton.setSelected(b);
     }
 
     private void aboutHandler() {
@@ -439,6 +461,7 @@ public class Application implements ActionListener, Runnable {
     private JCheckBoxMenuItem normalizeMenuItem;
     private JCheckBoxMenuItem maxRangeMenuItem;
     private JCheckBoxMenuItem showSLAMenuItem;
+    private JCheckBoxMenuItem showMWPMenuItem;
 
     private void enableMenuItems(boolean b) {
         snapshotMenuItem.setEnabled(b);
@@ -447,6 +470,7 @@ public class Application implements ActionListener, Runnable {
         normalizeMenuItem.setEnabled(b);
         maxRangeMenuItem.setEnabled(b);
         showSLAMenuItem.setEnabled(b);
+        showMWPMenuItem.setEnabled(b);
     }
 
     private void create_menubar() {
@@ -508,6 +532,12 @@ public class Application implements ActionListener, Runnable {
         showSLAMenuItem.setActionCommand("showSLAButton");
         showSLAMenuItem.addActionListener(this);
 
+        showMWPMenuItem = new JCheckBoxMenuItem("Show MWP");
+        showMWPMenuItem.setMnemonic(KeyEvent.VK_S);
+        showMWPMenuItem.setToolTipText("Enable/Disable MWP");
+        showMWPMenuItem.setActionCommand("showMWPButton");
+        showMWPMenuItem.addActionListener(this);
+
         JMenuItem aboutMenuItem = new JMenuItem("About");
         aboutMenuItem.setActionCommand("aboutHandler");
         aboutMenuItem.addActionListener(this);
@@ -526,7 +556,9 @@ public class Application implements ActionListener, Runnable {
 
         viewMenu.add(normalizeMenuItem);
         viewMenu.add(maxRangeMenuItem);
+        viewMenu.addSeparator();
         viewMenu.add(showSLAMenuItem);
+        viewMenu.add(showMWPMenuItem);
 
         helpMenu.add(aboutMenuItem);
     }
@@ -535,6 +567,7 @@ public class Application implements ActionListener, Runnable {
     private JButton slaMasterButton;
     private JButton mwpMasterButton;
     private JCheckBox showSLAButton;
+    private JCheckBox showMWPButton;
     private JButton maxRangeButton;
 
     private void enableToolbarButtons(boolean b) {
@@ -542,6 +575,7 @@ public class Application implements ActionListener, Runnable {
         slaMasterButton.setEnabled(b);
         mwpMasterButton.setEnabled(b);
         showSLAButton.setEnabled(b);
+        showMWPButton.setEnabled(b);
         maxRangeButton.setEnabled(b);
     }
 
@@ -589,6 +623,13 @@ public class Application implements ActionListener, Runnable {
         showSLAButton.addActionListener(this);
         tool.add(showSLAButton, BorderLayout.WEST);
 
+        showMWPButton = new JCheckBox("Show MWP");
+        showMWPButton.setToolTipText("Enable/Disable MWP");
+        showMWPButton.setMnemonic(KeyEvent.VK_S);
+        showMWPButton.setActionCommand("showMWPButton");
+        showMWPButton.addActionListener(this);
+        tool.add(showMWPButton, BorderLayout.WEST);
+
         maxRangeButton = new JButton("MaxRange");
         maxRangeButton.setActionCommand("maxRangeHandler");
         maxRangeButton.setIcon(new ImageIcon(getClass().getResource("icon_maxrange.png")));
@@ -600,6 +641,36 @@ public class Application implements ActionListener, Runnable {
         enableToolbarButtons(false);
         enableMenuItems(false);
         toppanel.add(tool);
+    }
+
+    private void installListeners() {
+        TabsListener tabsListener = new TabsListener() {
+            @Override
+            public void firstTabOpened() {
+                enableToolbarButtons(true);
+                enableMenuItems(true);
+
+                showMWPButton.setEnabled(mwpProperties.isShowMWPUnlocked());
+                showMWPMenuItem.setEnabled(mwpProperties.isShowMWPUnlocked());
+            }
+
+            @Override
+            public void lastTabClosed() {
+                enableToolbarButtons(false);
+                enableMenuItems(false);
+            }
+        };
+        tabbedPane = new DraggableTabbedPane(tabsListener);
+
+        mwpProperties.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("applyMWP")) {
+                    showMWPButton.setEnabled(mwpProperties.isShowMWPUnlocked());
+                    showMWPMenuItem.setEnabled(mwpProperties.isShowMWPUnlocked());
+                }
+            }
+        });
     }
 
     private void prepare_ui() {
@@ -620,20 +691,7 @@ public class Application implements ActionListener, Runnable {
         create_menubar();
         fc = new ZFileChooser(mainframe, new File(getPreviousRunsDirectoryForJHiccupLogFileOpenOrUseCurrentWorkingDirectory()));
 
-        TabsListener tabsListener = new TabsListener() {
-            @Override
-            public void firstTabOpened() {
-                enableToolbarButtons(true);
-                enableMenuItems(true);
-            }
-
-            @Override
-            public void lastTabClosed() {
-                enableToolbarButtons(false);
-                enableMenuItems(false);
-            }
-        };
-        tabbedPane = new DraggableTabbedPane(tabsListener);
+        installListeners();
 
         toppanel = new JPanel(new BorderLayout());
         create_toolbar();
