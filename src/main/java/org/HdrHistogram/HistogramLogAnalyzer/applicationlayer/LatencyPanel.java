@@ -39,12 +39,13 @@ class LatencyPanel extends JPanel
     private String[] tooltipTexts;
 
     LatencyPanel(String inputFileName, SLAProperties slaProperties,
-                 MWPProperties mwpProperties) throws IOException {
-        this(new String[] {inputFileName}, slaProperties, mwpProperties);
+                 MWPProperties mwpProperties, HPLProperties hplProperties) throws IOException
+    {
+        this(new String[] {inputFileName}, slaProperties, mwpProperties, hplProperties);
     }
 
     LatencyPanel(String[] inputFileNames, SLAProperties slaProperties,
-                 MWPProperties mwpProperties) throws IOException
+                 MWPProperties mwpProperties, HPLProperties hplProperties) throws IOException
     {
         ZoomProperty zoomProperty = new ZoomProperty();
         scaleProperties = new ScaleProperties();
@@ -61,10 +62,11 @@ class LatencyPanel extends JPanel
         setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
         JPanel timelineChart =
-                timelineChartBuilder.createTimelineChart(histogramModels, zoomProperty, mwpProperties, scaleProperties);
+                timelineChartBuilder.createTimelineChart(histogramModels, zoomProperty,
+                         mwpProperties, scaleProperties, hplProperties);
         JPanel percentileChart =
                 percentileChartBuilder.createPercentileChart(histogramModels,
-                        slaProperties, zoomProperty,mwpProperties, scaleProperties);
+                        slaProperties, zoomProperty,mwpProperties, scaleProperties, hplProperties);
 
         add(timelineChart);
         add(percentileChart);

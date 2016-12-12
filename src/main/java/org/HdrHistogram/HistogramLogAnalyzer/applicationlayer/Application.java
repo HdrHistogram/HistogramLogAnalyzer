@@ -41,6 +41,7 @@ public class Application implements ActionListener, Runnable {
 
     private SLAProperties slaProperties = new SLAProperties();
     private MWPProperties mwpProperties = new MWPProperties();
+    private HPLProperties hplProperties = new HPLProperties();
 
     private JFrame mainframe;
     private DraggableTabbedPane tabbedPane;
@@ -320,6 +321,9 @@ public class Application implements ActionListener, Runnable {
             case "showMWPButton":
                 showMWPButton(e);
                 break;
+            case "showHPLButton":
+                showHPLButton(e);
+                break;
             case "aboutHandler":
                 aboutHandler();
                 break;
@@ -449,6 +453,20 @@ public class Application implements ActionListener, Runnable {
         showMWPButton.setSelected(b);
     }
 
+    private void showHPLButton(ActionEvent e) {
+        boolean b;
+        Object source = e.getSource();
+        if (source instanceof JCheckBox) {
+            b = ((JCheckBox) source).isSelected();
+        } else if (source instanceof JCheckBoxMenuItem) {
+            b = ((JCheckBoxMenuItem) source).isSelected();
+        } else {
+            throw new RuntimeException("unknown source type: "+source);
+        }
+        hplProperties.toggleHPLVisibility(b);
+        showHPLMenuItem.setSelected(b);
+    }
+
     private void aboutHandler() {
         AboutDialog dialog = new AboutDialog(mainframe);
         dialog.setVisible(true);
@@ -462,6 +480,7 @@ public class Application implements ActionListener, Runnable {
     private JCheckBoxMenuItem maxRangeMenuItem;
     private JCheckBoxMenuItem showSLAMenuItem;
     private JCheckBoxMenuItem showMWPMenuItem;
+    private JCheckBoxMenuItem showHPLMenuItem;
 
     private void enableMenuItems(boolean b) {
         snapshotMenuItem.setEnabled(b);
@@ -471,6 +490,7 @@ public class Application implements ActionListener, Runnable {
         maxRangeMenuItem.setEnabled(b);
         showSLAMenuItem.setEnabled(b);
         showMWPMenuItem.setEnabled(b);
+        showHPLMenuItem.setEnabled(b);
     }
 
     private void create_menubar() {
@@ -538,6 +558,12 @@ public class Application implements ActionListener, Runnable {
         showMWPMenuItem.setActionCommand("showMWPButton");
         showMWPMenuItem.addActionListener(this);
 
+        showHPLMenuItem = new JCheckBoxMenuItem("Show percentile lines");
+        showHPLMenuItem.setMnemonic(KeyEvent.VK_P);
+        showHPLMenuItem.setToolTipText("Enable/Disable percentile lines");
+        showHPLMenuItem.setActionCommand("showHPLButton");
+        showHPLMenuItem.addActionListener(this);
+
         JMenuItem aboutMenuItem = new JMenuItem("About");
         aboutMenuItem.setActionCommand("aboutHandler");
         aboutMenuItem.addActionListener(this);
@@ -559,6 +585,7 @@ public class Application implements ActionListener, Runnable {
         viewMenu.addSeparator();
         viewMenu.add(showSLAMenuItem);
         viewMenu.add(showMWPMenuItem);
+        viewMenu.add(showHPLMenuItem);
 
         helpMenu.add(aboutMenuItem);
     }
@@ -732,6 +759,10 @@ public class Application implements ActionListener, Runnable {
 
     MWPProperties getMwpProperties() {
         return mwpProperties;
+    }
+
+    HPLProperties getHplProperties() {
+        return hplProperties;
     }
 
     private void run(File[] inputFiles) throws IOException {

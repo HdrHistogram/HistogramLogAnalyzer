@@ -20,12 +20,14 @@ public class MaxPercentileIterator extends ResultSetIterator<PercentileObject> {
     public PercentileObject nextObject() {
         double latencyAxisValue = 0;
         double percentileAxisValue = 0;
+        double percentileValue = 0;
         try {
             latencyAxisValue = resultSet.getDouble("MaxLatencyAxisValue");
             percentileAxisValue = resultSet.getDouble("MaxPercentileAxisValue");
+            percentileValue = resultSet.getDouble("MaxPercentileValue");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return new PercentileObject(latencyAxisValue, percentileAxisValue);
+        return new PercentileObject(latencyAxisValue, percentileAxisValue, percentileValue);
     }
 }

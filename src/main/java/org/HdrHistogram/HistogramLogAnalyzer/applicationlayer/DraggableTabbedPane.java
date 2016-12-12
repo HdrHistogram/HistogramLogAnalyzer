@@ -102,7 +102,8 @@ class DraggableTabbedPane extends JTabbedPane {
 
         PlotFilesMode mode;
         if (!multipleFiles) {
-            LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
+            LatencyPanel latencyPanel = new LatencyPanel(inputFileNames,
+                    app.getSlaProperties(), app.getMwpProperties(), app.getHplProperties());
             if (needNewTab) {
                 add_to_newtab(latencyPanel);
             } else {
@@ -122,7 +123,8 @@ class DraggableTabbedPane extends JTabbedPane {
             }
 
             if (mode == PlotFilesMode.SAME_CHART) {
-                LatencyPanel latencyPanel = new LatencyPanel(inputFileNames, app.getSlaProperties(), app.getMwpProperties());
+                LatencyPanel latencyPanel = new LatencyPanel(inputFileNames,
+                        app.getSlaProperties(), app.getMwpProperties(), app.getHplProperties());
                 if (needNewTab) {
                     add_to_newtab(latencyPanel);
                 } else {
@@ -130,7 +132,8 @@ class DraggableTabbedPane extends JTabbedPane {
                 }
             } else {
                 for (String inputFileName : inputFileNames) {
-                    LatencyPanel latencyPanel = new LatencyPanel(inputFileName, app.getSlaProperties(), app.getMwpProperties());
+                    LatencyPanel latencyPanel = new LatencyPanel(inputFileName,
+                            app.getSlaProperties(), app.getMwpProperties(), app.getHplProperties());
                     if (mode == PlotFilesMode.SAME_TAB && !needNewTab) {
                         add_to_currenttab(latencyPanel);
                     } else {

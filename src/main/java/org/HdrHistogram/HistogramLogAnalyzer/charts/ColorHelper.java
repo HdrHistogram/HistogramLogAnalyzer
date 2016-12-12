@@ -40,4 +40,19 @@ class ColorHelper {
     static Color getSLAColor() {
         return new Color(255, 204, 102);
     }
+
+    static Color getHPLColor(String percentileString) {
+        switch (percentileString) {
+            case "99%":
+            case "99.0%":
+                return Color.GREEN;
+            case "99.9%":
+                return Color.BLUE;
+            case "99.99%":
+                return new Color(128, 0, 128); // purple
+            case "Max":
+                return Color.RED;
+        }
+        throw new RuntimeException("unexpected HPL: "+percentileString);
+    }
 }

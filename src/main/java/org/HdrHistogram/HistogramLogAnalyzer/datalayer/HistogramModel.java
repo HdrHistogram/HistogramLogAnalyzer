@@ -6,6 +6,7 @@
 package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
 import org.HdrHistogram.*;
+import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.HPLProperties;
 import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.*;
 
@@ -226,7 +227,13 @@ public class HistogramModel {
                 for (HistogramIterationValue iterationValue : accumulatedRegularHistogram.percentiles(percentilesOutputTicksPerHalf)) {
                     double value = iterationValue.getValueIteratedTo() / outputValueUnitRatio;
                     double percentile = iterationValue.getPercentileLevelIteratedTo() / 100.0D;
-
+                    dbManager.insertPercentileObject(
+                            new PercentileObject(value, percentile, tag)
+                    );
+                }
+                // needed for horizontal lines
+                for (Double percentile : HPLProperties.getPercentiles()) {
+                    double value = accumulatedRegularHistogram.getValueAtPercentile(percentile * 100) / outputValueUnitRatio;
                     dbManager.insertPercentileObject(
                             new PercentileObject(value, percentile, tag)
                     );
@@ -236,6 +243,13 @@ public class HistogramModel {
                     double value = iterationValue.getValueIteratedTo() / outputValueUnitRatio;
                     double percentile = iterationValue.getPercentileLevelIteratedTo() / 100.0D;
 
+                    dbManager.insertPercentileObject(
+                            new PercentileObject(value, percentile, tag)
+                    );
+                }
+                // needed for horizontal lines
+                for (Double percentile : HPLProperties.getPercentiles()) {
+                    double value = accumulatedDoubleHistogram.getValueAtPercentile(percentile * 100) / outputValueUnitRatio;
                     dbManager.insertPercentileObject(
                             new PercentileObject(value, percentile, tag)
                     );
@@ -259,4 +273,7 @@ public class HistogramModel {
         return dbManager.listMaxPercentileObjects(tag);
     }
 
+    public PercentileIterator listHPLPercentileObjects(String tag) {
+        return dbManager.listHPLPercentileObjects(tag);
+    }
 }

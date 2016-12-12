@@ -43,9 +43,9 @@ public class PercentileChartBuilder {
 
     public JPanel createPercentileChart(final List<HistogramModel> histogramModels, final SLAProperties slaProperties,
                                         final ZoomProperty zoomProperty, final MWPProperties MWPProperties,
-                                        final ScaleProperties scaleProperties)
+                                        final ScaleProperties scaleProperties, final HPLProperties hplProperties)
     {
-        JFreeChart drawable = createPercentileDrawable(histogramModels, slaProperties);
+        JFreeChart drawable = createPercentileDrawable(histogramModels, slaProperties, hplProperties);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -109,7 +109,7 @@ public class PercentileChartBuilder {
                     }
                 }
 
-                JFreeChart drawable = createPercentileDrawable(newModels, slaProperties);
+                JFreeChart drawable = createPercentileDrawable(newModels, slaProperties, hplProperties);
                 chartPanel.setChart(drawable);
             }
         });
@@ -175,6 +175,27 @@ public class PercentileChartBuilder {
             }
         });
 
+        // toggling HPL menu item changes visibility of HPL lines on chart
+        hplProperties.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("hplShow")) {
+                    Boolean b = (Boolean) evt.getNewValue();
+                    XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+                    XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+
+                    XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+                    for (int i = 0; i < dataset.getSeriesCount(); i++) {
+                        XYSeries series = dataset.getSeries(i);
+                        String key = (String) series.getKey();
+                        if (key.endsWith("%") || key.equals("Max")) {
+                            renderer.setSeriesVisible(i, b);
+                        }
+                    }
+                }
+            }
+        });
+
         scaleProperties.addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -191,8 +212,9 @@ public class PercentileChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createPercentileDrawable(List<HistogramModel> histogramModels, SLAProperties slaProperties) {
-
+    private JFreeChart createPercentileDrawable(List<HistogramModel> histogramModels,
+                                                SLAProperties slaProperties, HPLProperties hplProperties)
+    {
         String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.PERCENTILE);
         String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.PERCENTILE);
         String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.PERCENTILE);
@@ -266,17 +288,28 @@ public class PercentileChartBuilder {
         plot.getRangeAxis(0).setRange(0.0, maxLatencyAxisValue + maxLatencyAxisValue * 0.1);
         plot.getRangeAxis().setAutoRange(false);
 
+        // SLA/HPL visibility, line settings etc
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
-        for (int i = 0; i < plot.getSeriesCount() - 1; i++) {
-            renderer.setSeriesPaint(i, ColorHelper.getColor(i));
+        XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+        for (int i = 0; i < dataset.getSeriesCount(); i++) {
             renderer.setSeriesShapesVisible(i, false);
             renderer.setSeriesLinesVisible(i, true);
+
+            XYSeries series = dataset.getSeries(i);
+            String key = (String) series.getKey();
+            if (key.equals("SLA")) {
+                renderer.setSeriesVisible(i, slaProperties.isSLAVisible());
+                renderer.setSeriesPaint(i, ColorHelper.getSLAColor());
+                renderer.setSeriesShapesVisible(i, false);
+                renderer.setSeriesStroke(i, new BasicStroke(2.0f));
+            } else if (key.endsWith("%") || key.equals("Max")) {
+                renderer.setSeriesVisible(i, hplProperties.isHPLVisible());
+                renderer.setSeriesPaint(i, ColorHelper.getHPLColor(key));
+                renderer.setSeriesStroke(i, new BasicStroke(2.0f));
+            } else {
+                renderer.setSeriesPaint(i, ColorHelper.getColor(i));
+            }
         }
-        int slaIndex = plot.getSeriesCount() - 1;
-        renderer.setSeriesVisible(slaIndex, slaProperties.isSLAVisible());
-        renderer.setSeriesPaint(slaIndex, ColorHelper.getSLAColor());
-        renderer.setSeriesShapesVisible(slaIndex, false);
-        renderer.setSeriesStroke(slaIndex, new BasicStroke(2.0f));
 
         plot.setDomainGridlinesVisible(false);
         renderer.setBaseToolTipGenerator(new StandardXYToolTipGenerator());
@@ -294,9 +327,13 @@ public class PercentileChartBuilder {
         maxLatencyAxisValue = 0.0;
         maxPercentileAxisValue = 0.0;
         boolean multipleFiles = histogramModels.size() > 1;
+        boolean multipleTagsEncountered = false;
         String defaultTagKey = ConstantsHelper.getLatencyName() + " by Percentile";
         for (HistogramModel histogramModel : histogramModels) {
             boolean multipleTags = histogramModel.getTags().size() > 1;
+            if (multipleTags) {
+                multipleTagsEncountered = true;
+            }
             for (String tag : histogramModel.getTags()) {
                 String key;
                 if (multipleFiles) {
@@ -328,14 +365,24 @@ public class PercentileChartBuilder {
             }
         }
 
-        XYSeries series = new XYSeries("SLA");
+        // tool doesn't support SLA/HPL for charts with multiple files
+        // tool doesn't support SLA/HPL for files with multiple tags
+        if (!multipleFiles && !multipleTagsEncountered) {
+            XYSeries series = new XYSeries("Max");
+            series.add(ret.getDomainLowerBound(false), maxLatencyAxisValue);
+            series.add(ret.getDomainUpperBound(false), maxLatencyAxisValue);
+            ret.addSeries(series);
+        }
 
+        XYSeries series = new XYSeries("SLA");
         List<SLAProperties.SLAEntry> slaEntries = slaProperties.getSLAEntries();
         slaEntries.add(0, new SLAProperties.SLAEntry(0.0, 0.0));
         int count = slaEntries.size();
         for (int i = 0; i < count; i++) {
             SLAProperties.SLAEntry slaEntry = slaEntries.get(i);
-            series.add(slaEntry.getPercentileAxis(), slaEntry.getLatency());
+            // limit SLA line
+            Double percentileAxis = Math.min(slaEntry.getPercentileAxis(), ret.getDomainUpperBound(false));
+            series.add(percentileAxis, slaEntry.getLatency());
             if (i + 1 < count) {
                 SLAProperties.SLAEntry nextSLAEntry = slaEntries.get(i + 1);
                 series.add(slaEntry.getPercentileAxis(), nextSLAEntry.getLatency());

@@ -19,13 +19,15 @@ public class PercentileIterator extends ResultSetIterator<PercentileObject> {
     @Override
     public PercentileObject nextObject() {
         double percentileAxisValue = 0;
+        double percentileValue = 0;
         double latencyAxisValue = 0;
         try {
             percentileAxisValue = resultSet.getDouble("percentileAxisValue");
+            percentileValue = resultSet.getDouble("percentileValue");
             latencyAxisValue = resultSet.getDouble("latencyAxisValue");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return new PercentileObject(latencyAxisValue, percentileAxisValue);
+        return new PercentileObject(latencyAxisValue, percentileAxisValue, percentileValue);
     }
 }

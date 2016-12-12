@@ -30,6 +30,7 @@ class DBManager {
             String db_create_j_hst = "CREATE TABLE j_hst("+
                     "latencyAxisValue REAL, " +
                     "percentileAxisValue REAL, " +
+                    "percentileValue REAL, " +
                     "tag REAL);";
             db.statement.execute(db_create_j_hst);
 
@@ -100,6 +101,7 @@ class DBManager {
             String db_insert_j_hst = "INSERT INTO j_hst VALUES (\"" +
                     String.valueOf(po.getLatencyAxisValue()) + "\", \"" +
                     String.valueOf(po.getPercentileAxisValue()) + "\", \"" +
+                    String.valueOf(po.getPercentileValue()) + "\", \"" +
                     po.getTag() + "\")";
 
             db.statement.execute(db_insert_j_hst);
@@ -124,6 +126,22 @@ class DBManager {
                " and tag='"+ tag + "';";
     }
 
+    PercentileIterator listHPLPercentileObjects(String tag) {
+        String queryString = createHPLPercentileQueryString(tag);
+        ResultSet rs = null;
+        try {
+            rs = db.statement.executeQuery(queryString);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new PercentileIterator(rs);
+    }
+
+    private String createHPLPercentileQueryString(String tag) {
+        return "select * from j_hst where percentileValue in (0.99, 0.999, 0.9999)" +
+                " and tag='"+ tag + "';";
+    }
+
     MaxPercentileIterator listMaxPercentileObjects(String tag) {
         String queryString = createMaxValuesQueryString(tag);
         ResultSet rs = null;
@@ -138,7 +156,8 @@ class DBManager {
 
     private String createMaxValuesQueryString(String tag) {
         return "select max( cast(latencyAxisValue as float) ) as MaxLatencyAxisValue, "+
-                "max(cast(PercentileAxisValue as float) ) as MaxPercentileAxisValue from j_hst"
-                        + " where tag='"+ tag + "';";
+                "max(cast(PercentileAxisValue as float) ) as MaxPercentileAxisValue, "+
+                "max(cast(PercentileValue as float) ) as MaxPercentileValue from j_hst"+
+                " where tag='"+ tag + "';";
     }
 }
