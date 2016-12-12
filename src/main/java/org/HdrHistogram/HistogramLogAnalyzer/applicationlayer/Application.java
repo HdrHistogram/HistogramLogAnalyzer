@@ -516,50 +516,47 @@ public class Application implements ActionListener, Runnable {
         snapshotMenuItem.addActionListener(this);
 
         configureSLAMenuItem = new JMenuItem("Configure SLA", new ImageIcon(getClass().getResource("icon_sla.png")));
-        configureSLAMenuItem.setMnemonic(KeyEvent.VK_S);
-        configureSLAMenuItem.setAccelerator(KeyStroke.getKeyStroke('S', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         configureSLAMenuItem.setActionCommand("configureSLAHandler");
         configureSLAMenuItem.addActionListener(this);
 
         // FIXME: new icon for MWP
         configureMWPMenuItem = new JMenuItem("Configure MWP", new ImageIcon(getClass().getResource("icon_sla.png")));
-        configureMWPMenuItem.setMnemonic(KeyEvent.VK_T);
-        configureMWPMenuItem.setAccelerator(KeyStroke.getKeyStroke('T', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         configureMWPMenuItem.setActionCommand("configureMWPHandler");
         configureMWPMenuItem.addActionListener(this);
 
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.setMnemonic(KeyEvent.VK_X);
-        exitMenuItem.setAccelerator(KeyStroke.getKeyStroke('Q', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        exitMenuItem.setAccelerator(KeyStroke.getKeyStroke('X', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         exitMenuItem.setActionCommand("exitHandler");
         exitMenuItem.addActionListener(this);
 
         normalizeMenuItem = new JCheckBoxMenuItem("Normalize Y axis");
         normalizeMenuItem.setMnemonic(KeyEvent.VK_N);
+        normalizeMenuItem.setAccelerator(KeyStroke.getKeyStroke('N', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         normalizeMenuItem.setToolTipText(NORMALIZE_TOOLTIP_TEXT);
         normalizeMenuItem.setActionCommand("normalizeHandler");
         normalizeMenuItem.addActionListener(this);
 
         maxRangeMenuItem = new JCheckBoxMenuItem("MaxRange");
         maxRangeMenuItem.setMnemonic(KeyEvent.VK_M);
+        maxRangeMenuItem.setAccelerator(KeyStroke.getKeyStroke('M', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         maxRangeMenuItem.setToolTipText("Set MAX Range to both");
         maxRangeMenuItem.setActionCommand("maxRangeHandler");
         maxRangeMenuItem.addActionListener(this);
 
         showSLAMenuItem = new JCheckBoxMenuItem("Show SLA");
         showSLAMenuItem.setMnemonic(KeyEvent.VK_S);
+        showSLAMenuItem.setAccelerator(KeyStroke.getKeyStroke('S', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         showSLAMenuItem.setToolTipText("Enable/Disable SLA");
         showSLAMenuItem.setActionCommand("showSLAButton");
         showSLAMenuItem.addActionListener(this);
 
         showMWPMenuItem = new JCheckBoxMenuItem("Show MWP");
-        showMWPMenuItem.setMnemonic(KeyEvent.VK_S);
         showMWPMenuItem.setToolTipText("Enable/Disable MWP");
         showMWPMenuItem.setActionCommand("showMWPButton");
         showMWPMenuItem.addActionListener(this);
 
         showHPLMenuItem = new JCheckBoxMenuItem("Show percentile lines");
-        showHPLMenuItem.setMnemonic(KeyEvent.VK_P);
         showHPLMenuItem.setToolTipText("Enable/Disable percentile lines");
         showHPLMenuItem.setActionCommand("showHPLButton");
         showHPLMenuItem.addActionListener(this);
@@ -629,7 +626,6 @@ public class Application implements ActionListener, Runnable {
         slaMasterButton = new JButton(SLA_MASTER_TABNAME);
         slaMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
         slaMasterButton.setToolTipText(SLA_TOOLTIP_TEXT);
-        slaMasterButton.setMnemonic(KeyEvent.VK_S);
         slaMasterButton.setActionCommand("configureSLAHandler");
         slaMasterButton.addActionListener(this);
         tool.add(slaMasterButton, BorderLayout.WEST);
@@ -638,21 +634,19 @@ public class Application implements ActionListener, Runnable {
         // FIXME: new icon for MWP
         mwpMasterButton.setIcon(new ImageIcon(getClass().getResource("icon_sla.png")));
         mwpMasterButton.setToolTipText(MWP_TOOLTIP_TEXT);
-        mwpMasterButton.setMnemonic(KeyEvent.VK_T);
         mwpMasterButton.setActionCommand("configureMWPHandler");
         mwpMasterButton.addActionListener(this);
         tool.add(mwpMasterButton, BorderLayout.WEST);
 
         showSLAButton = new JCheckBox("Show SLA");
-        showSLAButton.setToolTipText("Enable/Disable SLA");
         showSLAButton.setMnemonic(KeyEvent.VK_S);
+        showSLAButton.setToolTipText("Enable/Disable SLA");
         showSLAButton.setActionCommand("showSLAButton");
         showSLAButton.addActionListener(this);
         tool.add(showSLAButton, BorderLayout.WEST);
 
         showMWPButton = new JCheckBox("Show MWP");
         showMWPButton.setToolTipText("Enable/Disable MWP");
-        showMWPButton.setMnemonic(KeyEvent.VK_S);
         showMWPButton.setActionCommand("showMWPButton");
         showMWPButton.addActionListener(this);
         tool.add(showMWPButton, BorderLayout.WEST);
