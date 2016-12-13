@@ -1,23 +1,23 @@
 HistogramLogAnalyzer
 ----------------------------------------------
 
-HistogramLogAnalyzer is a UI tool that plots log files in histogram log format produced by jHiccup, cassandra-stress or other tools that support this format.
+HistogramLogAnalyzer is a User Interface (UI) tool that plots log files in a histogram log format produced by jHiccup, cassandra-stress, or other tools that support this format.
 
-How to build
+How to Build
 ----------------------------------------------
 
-Use Maven to build it from source code
+Use Maven to build it from the source code
 
     % mvn clean package
 
-How to run
+How to Run
 ----------------------------------------------
 
-Run it from the command line (java -jar HistogramLogAnalyzer.jar) or just by double-clicking on jar file.
+You can run it by using the command line: java -jar HistogramLogAnalyzer.jar or just by double-clicking the jar file.
 
-Select log file to plot (via “File->Open” menu, command line option “-f file” or just drag and drop log file in the main window).
+Select a log file to plot (by selecting the “File->Open” menu, using the command-line option “-f file”, or just dragging and dropping the log file in the main window).
 
-Timeline and percentile charts
+Timeline and Percentile Charts
 ----------------------------------------------
 
 The tool produces two charts arranged vertically one above the other:
@@ -25,7 +25,7 @@ The tool produces two charts arranged vertically one above the other:
  - Timeline chart
  - Percentile chart
 
-The timeline chart plots the maximum latency duration observed in each time interval. There is a spike for every recorded sample. The height of each spike indicates the maximum pause time experienced during that interval.
+The timeline chart plots the maximum latency duration observed in each time interval. There is a spike in every recorded sample. The height of each spike indicates the maximum pause time experienced during that interval.
 
 ![timeline example plot]
 
@@ -33,18 +33,18 @@ The percentile chart plots the observed latency durations at varying percentiles
 
 ![percentile example plot]
 
-The tool allows to view SLA (service level agreement) data in the percentile chart. Use “Master SLA” button in toolbar to open new tab and configure SLA values (arbitrary number of percentile/latency pairs). Use “Show SLA” button in toolbar to display SLA in the percentile chart.
+The tool enables viewing SLA (service level agreement) data in the percentile chart. Use the “Master SLA” button in the toolbar to open new tab and configure SLA values (arbitrary number of percentile/latency pairs). Use the  “Show SLA” button to display SLA in the percentile chart.
 
-The tool also allows to plot multiple percentiles and multiple moving window widths on the timeline chart. Use “Master MWP” button in toolbar to open new tab and configure MWP (multiple window percentile) values (percentile/“interval count” pairs).
+The tool also enables plotting multiple percentiles and multiple moving window widths on the timeline chart. Use the “Master MWP” button in the toolbar to open a new tab and configure MWP (a multiple window percentile) values (percentile/“interval count” pairs).
 
-Customize charts
+Customize Charts
 ----------------------------------------------
 
 The tool provides several options to customize the charts:
 
  - Chart properties
 
-Right-click on chart to open a popup menu and then click on “Properties…” menu item to open "Chart properties" dialog. This dialog allows to customize different chart settings (titles, fonts, colors, etc).
+Right-click a chart to open a popup menu and then select the “Properties…” menu item to open the "Chart properties" dialog. This dialog allows you to customize different chart settings (titles, fonts, colors, etc).
 
  - Zooming functionality
 
@@ -55,12 +55,12 @@ When zooming in on a range in the timeline chart, the percentile chart changes t
 Snapshot
 ----------------------------------------------
 
-The tool also provides option to make a snapshot image of charts via “Snapshot” button in toolbar.
+The tool also provides a way to make a snapshot image of charts by using the “Snapshot” button in the toolbar.
 
-Plotting tags
+Plotting Tags
 ----------------------------------------------
 
-The tool supports log files with multiple tags. It plots multiple tags (with different colors) on the same chart. Clicking on a tag item in chart legend toggles visibility of this tag in the chart.
+The tool supports log files with multiple tags. It plots multiple tags (with different colors) on the same chart. Clicking a tag item in the chart legend toggles visibility of this tag in the chart.
 
 [timeline example plot]:https://raw.github.com/HdrHistogram/HistogramLogAnalyzer/master/examples/screenshots/exampleTimelinePlot.png "Example timeline plot"
 [percentile example plot]:https://raw.github.com/HdrHistogram/HistogramLogAnalyzer/master/examples/screenshots/examplePercentilePlot.png "Example timeline plot"
