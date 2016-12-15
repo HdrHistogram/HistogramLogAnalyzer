@@ -5,93 +5,21 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TagsHelper;
+
+import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Set;
 
-import javax.swing.*;
+public class LatencyTabbedPane extends DnDTabbedPane {
 
-import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TagsHelper;
-
-/*
- * Credit http://stackoverflow.com/questions/60269/how-to-implement-draggable-tab-using-java-swing
- *
- * Modified by Dmitry
- */
-class DraggableTabbedPane extends JTabbedPane {
-
-	private static final long serialVersionUID = 1L;
-    private boolean dragging = false;
-    private Image tabImage = null;
-    private Point currentMouseLocation = null;
-    private int draggedTabIndex = 0;
     private TabsListener tabsListener = null;
 
-    DraggableTabbedPane(final TabsListener tabsListener) {
+    LatencyTabbedPane(TabsListener tabsListener) {
         super();
         this.tabsListener = tabsListener;
-        addMouseMotionListener(new MouseMotionAdapter() {
-          @Override
-        public void mouseDragged(MouseEvent e) {
-
-            if(!dragging) {
-              int tabNumber = getUI().tabForCoordinate(DraggableTabbedPane.this, e.getX(), e.getY());
-              if(tabNumber >= 0) {
-                draggedTabIndex = tabNumber;
-                Rectangle bounds = getUI().getTabBounds(DraggableTabbedPane.this, tabNumber);
-                Image totalImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-                Graphics totalGraphics = totalImage.getGraphics();
-                totalGraphics.setClip(bounds);
-                setDoubleBuffered(false);
-                paintComponent(totalGraphics);
-
-                tabImage = new BufferedImage(bounds.width, bounds.height, BufferedImage.TYPE_INT_ARGB);
-                Graphics graphics = tabImage.getGraphics();
-                graphics.drawImage(totalImage, 0, 0, bounds.width, bounds.height, bounds.x, bounds.y, bounds.x + bounds.width, bounds.y+bounds.height, DraggableTabbedPane.this);
-
-                dragging = true;
-                repaint();
-              }
-            } else {
-              currentMouseLocation = e.getPoint();
-              repaint();
-            }
-
-            super.mouseDragged(e);
-        }
-    });
-
-    addMouseListener(new MouseAdapter() {
-          @Override
-        public void mouseReleased(MouseEvent e) {
-
-            if(dragging) {
-              int tabNumber = getUI().tabForCoordinate(DraggableTabbedPane.this, e.getX(), 10);
-              if(tabNumber >= 0) {
-                Component comp = getComponentAt(draggedTabIndex);
-                String title = getTitleAt(draggedTabIndex);
-                removeTabAt(draggedTabIndex);
-                insertTab(title, null, comp, null, tabNumber);
-                setTabComponentAt(tabNumber, new TabCloseComponent(title, DraggableTabbedPane.this, tabsListener));
-                checkFirstTabOpened();
-              }
-            }
-
-            dragging = false;
-            tabImage = null;
-          }
-        });
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        if(dragging && currentMouseLocation != null && tabImage != null) {
-            g.drawImage(tabImage, currentMouseLocation.x, currentMouseLocation.y, this);
-        }
     }
 
     void plotInputFiles(String[] inputFileNames, Application app) throws IOException {
@@ -192,7 +120,7 @@ class DraggableTabbedPane extends JTabbedPane {
 
         // update tooltip of the current tab
         String newTooltipText =
-            updateMultilineTooltipText(getToolTipTextAt(getSelectedIndex()), latencyPanel.getTooltipTexts());
+                updateMultilineTooltipText(getToolTipTextAt(getSelectedIndex()), latencyPanel.getTooltipTexts());
         setToolTipTextAt(getSelectedIndex(), newTooltipText);
     }
 

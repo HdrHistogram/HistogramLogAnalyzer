@@ -44,7 +44,7 @@ public class Application implements ActionListener, Runnable {
     private HPLProperties hplProperties = new HPLProperties();
 
     private JFrame mainframe;
-    private DraggableTabbedPane tabbedPane;
+    private LatencyTabbedPane tabbedPane;
     private JPanel toppanel, bottompanel;
 
     JFrame getMainFrame() {
@@ -681,7 +681,7 @@ public class Application implements ActionListener, Runnable {
                 enableMenuItems(false);
             }
         };
-        tabbedPane = new DraggableTabbedPane(tabsListener);
+        tabbedPane = new LatencyTabbedPane(tabsListener);
 
         mwpProperties.addPropertyChangeListener(new PropertyChangeListener() {
             @Override

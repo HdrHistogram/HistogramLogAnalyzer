@@ -14,14 +14,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
-import javax.swing.AbstractButton;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
+import javax.swing.*;
 import javax.swing.plaf.basic.BasicButtonUI;
 
 @SuppressWarnings("serial")
@@ -31,10 +24,6 @@ public class TabCloseComponent extends JPanel {
 	private final JButton button = new TabButton();
 	private final TabsListener tabsListener;
 
-	/**
-	 * @param tabTitle
-	 * @param pane
-	 */
 	public TabCloseComponent(String tabTitle, JTabbedPane pane, TabsListener tabsListener) {
 		super(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		this.pane = pane;
@@ -47,9 +36,10 @@ public class TabCloseComponent extends JPanel {
 		setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
 	}
 
-	/**
-	 * Tab Button
-	 */
+	TabsListener getTabsListener() {
+		return tabsListener;
+	}
+
 	private class TabButton extends JButton implements ActionListener {
 		public TabButton() {
 			int size = 17;
@@ -57,6 +47,7 @@ public class TabCloseComponent extends JPanel {
 			setPreferredSize(new Dimension(size, size));
 			setToolTipText("close this tab");
 			setUI(new BasicButtonUI());
+
 			setContentAreaFilled(false);
 			setFocusable(false);
 			setBorder(BorderFactory.createEtchedBorder());
@@ -66,9 +57,6 @@ public class TabCloseComponent extends JPanel {
 			addActionListener(this);
 		}
 
-		/**
-		 * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-		 */
 		@Override
         public void actionPerformed(ActionEvent e) {
 		    int index = pane.indexOfTabComponent(TabCloseComponent.this);
@@ -84,22 +72,13 @@ public class TabCloseComponent extends JPanel {
 			}
 		}
 
-		/**
-		 * @see javax.swing.JButton#updateUI()
-		 */
 		@Override
         public void updateUI() {
 		}
 	}
 
-	/**
-	 *
-	 */
 	private final static MouseListener buttonMouseListener = new MouseAdapter() {
 
-		/**
-		 * @see java.awt.event.MouseAdapter#mouseEntered(java.awt.event.MouseEvent)
-		 */
 		@Override
         public void mouseEntered(MouseEvent e) {
 			Component component = e.getComponent();
@@ -109,9 +88,6 @@ public class TabCloseComponent extends JPanel {
 			}
 		}
 
-		/**
-		 * @see java.awt.event.MouseAdapter#mouseExited(java.awt.event.MouseEvent)
-		 */
 		@Override
         public void mouseExited(MouseEvent e) {
 			Component component = e.getComponent();
