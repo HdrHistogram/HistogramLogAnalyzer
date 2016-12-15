@@ -13,6 +13,11 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -28,6 +33,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -703,10 +709,18 @@ public class Application implements ActionListener, Runnable {
                 mainframe.dispose();
             }
         });
-        new FileDrop(mainframe, new FileDrop.Listener() {
-            @Override
-            public void filesDropped(File[] files) {
-                openFiles(files);
+        mainframe.setDropTarget(new DropTarget() {
+            public synchronized void drop(DropTargetDropEvent dtde) {
+                dtde.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
+                try {
+                    List<File> files =
+                        (List<File>)dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    openFiles(files.toArray(new File[files.size()]));
+                } catch (UnsupportedFlavorException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
         create_menubar();
