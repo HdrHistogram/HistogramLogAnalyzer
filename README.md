@@ -35,7 +35,7 @@ The percentile chart plots the observed latency durations at varying percentiles
 
 The tool enables viewing SLA (service level agreement) data in the percentile chart. Use the “Master SLA” button in the toolbar to open new tab and configure SLA values (arbitrary number of percentile/latency pairs). Use the  “Show SLA” button to display SLA in the percentile chart.
 
-The tool also enables plotting multiple percentiles and multiple moving window widths on the timeline chart. Use the “Master MWP” button in the toolbar to open a new tab and configure MWP (a multiple window percentile) values (percentile/“interval count” pairs).
+The tool also enables plotting multiple percentiles and multiple moving window widths on the timeline chart. Use the “Master MWP” button in the toolbar to open a new tab and configure MWP (a multiple window percentile) values (percentile/“window length” pairs). Use the  “Show MWP” button to display MWP in the timeline chart.
 
 Customize Charts
 ----------------------------------------------
