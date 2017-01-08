@@ -14,10 +14,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 public class HistogramModel {
     private String inputFileName;
@@ -112,6 +109,8 @@ public class HistogramModel {
     private void init() throws IOException {
         for (String tag : tags) {
             List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
+            hplValues.put(tag, new ArrayList<PercentileObject>());
+
             for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
                 init(tag, mwpEntry);
             }
@@ -227,32 +226,31 @@ public class HistogramModel {
                 for (HistogramIterationValue iterationValue : accumulatedRegularHistogram.percentiles(percentilesOutputTicksPerHalf)) {
                     double value = iterationValue.getValueIteratedTo() / outputValueUnitRatio;
                     double percentile = iterationValue.getPercentileLevelIteratedTo() / 100.0D;
+                    double countAtValue = iterationValue.getCountAddedInThisIterationStep();
+
                     dbManager.insertPercentileObject(
-                            new PercentileObject(value, percentile, tag)
+                            new PercentileObject(value, percentile, countAtValue, tag)
                     );
                 }
                 // needed for horizontal lines
                 for (Double percentile : HPLProperties.getPercentiles()) {
                     double value = accumulatedRegularHistogram.getValueAtPercentile(percentile * 100) / outputValueUnitRatio;
-                    dbManager.insertPercentileObject(
-                            new PercentileObject(value, percentile, tag)
-                    );
+                    hplValues.get(tag).add(new PercentileObject(value, percentile, 0.0, tag));
                 }
             } else {
                 for (DoubleHistogramIterationValue iterationValue : accumulatedDoubleHistogram.percentiles(percentilesOutputTicksPerHalf)) {
                     double value = iterationValue.getValueIteratedTo() / outputValueUnitRatio;
                     double percentile = iterationValue.getPercentileLevelIteratedTo() / 100.0D;
+                    double countAtValue = iterationValue.getCountAddedInThisIterationStep();
 
                     dbManager.insertPercentileObject(
-                            new PercentileObject(value, percentile, tag)
+                            new PercentileObject(value, percentile, countAtValue, tag)
                     );
                 }
                 // needed for horizontal lines
                 for (Double percentile : HPLProperties.getPercentiles()) {
                     double value = accumulatedDoubleHistogram.getValueAtPercentile(percentile * 100) / outputValueUnitRatio;
-                    dbManager.insertPercentileObject(
-                            new PercentileObject(value, percentile, tag)
-                    );
+                    hplValues.get(tag).add(new PercentileObject(value, percentile, 0.0, tag));
                 }
             }
         }
@@ -265,15 +263,22 @@ public class HistogramModel {
         return dbManager.listTimelineObjects(multipleTags, tag, mwpEntry);
     }
 
-    public PercentileIterator listPercentileObjects(String tag, PercentileObject maxPO) {
-        return dbManager.listPercentileObjects(tag, maxPO);
+    public PercentileIterator listPercentileObjects(String tag, PercentileObject limitObject) {
+        return dbManager.listPercentileObjects(tag, limitObject);
     }
 
     public MaxPercentileIterator listMaxPercentileObjects(String tag) {
         return dbManager.listMaxPercentileObjects(tag);
     }
 
-    public PercentileIterator listHPLPercentileObjects(String tag) {
-        return dbManager.listHPLPercentileObjects(tag);
+    // "HPL" values per tag
+    private Map<String, List<PercentileObject>> hplValues = new HashMap<>();
+
+    public Iterator<PercentileObject> listHPLPercentileObjects(String tag) {
+        return hplValues.get(tag).iterator();
+    }
+
+    public BucketIterator listBucketObjects(String tag) {
+        return dbManager.listBucketObjects(tag);
     }
 }

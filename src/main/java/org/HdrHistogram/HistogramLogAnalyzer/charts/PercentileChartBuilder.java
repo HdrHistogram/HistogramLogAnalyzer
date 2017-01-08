@@ -242,10 +242,6 @@ public class PercentileChartBuilder {
         ll.setBase(10);
 
         ll.setNumberFormatOverride(new NumberFormat() {
-
-			/**
-			 *
-			 */
 			private static final long serialVersionUID = 6737184345504901251L;
 
 			@Override
@@ -283,8 +279,11 @@ public class PercentileChartBuilder {
 				return toAppendTo;
 			}
 		});
+
+        ll.setLabelFont(plot.getDomainAxis().getLabelFont());
         plot.setDomainAxis(0, ll);
         plot.getDomainAxis(0).setUpperBound(maxPercentileAxisValue + (maxPercentileAxisValue * 0.4));
+
         plot.getRangeAxis(0).setRange(0.0, maxLatencyAxisValue + maxLatencyAxisValue * 0.1);
         plot.getRangeAxis().setAutoRange(false);
 

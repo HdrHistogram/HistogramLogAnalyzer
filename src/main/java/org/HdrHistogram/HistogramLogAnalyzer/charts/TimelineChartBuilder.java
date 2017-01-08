@@ -35,6 +35,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.List;
 
@@ -276,7 +277,7 @@ public class TimelineChartBuilder {
                 }
 
                 // HPL lines
-                PercentileIterator pi = histogramModel.listHPLPercentileObjects(null);
+                Iterator<PercentileObject> pi = histogramModel.listHPLPercentileObjects(null);
                 while (pi.hasNext()) {
                     PercentileObject po = pi.next();
                     String key = String.valueOf(po.getPercentileValue() * 100);

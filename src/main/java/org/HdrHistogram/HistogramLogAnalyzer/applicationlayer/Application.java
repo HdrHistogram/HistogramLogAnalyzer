@@ -48,6 +48,7 @@ public class Application implements ActionListener, Runnable {
     private SLAProperties slaProperties = new SLAProperties();
     private MWPProperties mwpProperties = new MWPProperties();
     private HPLProperties hplProperties = new HPLProperties();
+    private ViewProperties viewProperties = new ViewProperties();
 
     private JFrame mainframe;
     private LatencyTabbedPane tabbedPane;
@@ -321,14 +322,20 @@ public class Application implements ActionListener, Runnable {
             case "maxRangeHandler":
                 maxRangeHandler();
                 break;
-            case "showSLAButton":
-                showSLAButton(e);
+            case "showSLAButtonHandler":
+                showSLAButtonHandler(e);
                 break;
-            case "showMWPButton":
-                showMWPButton(e);
+            case "showMWPButtonHandler":
+                showMWPButtonHandler(e);
                 break;
-            case "showHPLButton":
-                showHPLButton(e);
+            case "showHPLButtonHandler":
+                showHPLButtonHandler(e);
+                break;
+            case "showPercentileChartHandler":
+                showPercentileChartHandler(e);
+                break;
+            case "showBucketsChartHandler":
+                showBucketsChartHandler(e);
                 break;
             case "aboutHandler":
                 aboutHandler();
@@ -406,7 +413,9 @@ public class Application implements ActionListener, Runnable {
     }
 
     private void maxRangeHandler() {
-        if (tabbedPane.getTabCount() != 0 && !tabbedPane.isMasterTabCurrent()) {
+        if (tabbedPane.getTabCount() != 0 && !tabbedPane.isMasterTabCurrent() &&
+            getViewProperties().getBottomChartType().equals(LatencyChartType.PERCENTILE))
+        {
             JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
             for (int k = 0; k < p1.getComponentCount(); k++) {
                 JPanel latencyPanel = (JPanel) p1.getComponent(k);
@@ -429,7 +438,7 @@ public class Application implements ActionListener, Runnable {
         }
     }
 
-    private void showSLAButton(ActionEvent e) {
+    private void showSLAButtonHandler(ActionEvent e) {
         boolean b;
         Object source = e.getSource();
         if (source instanceof JCheckBox) {
@@ -444,7 +453,7 @@ public class Application implements ActionListener, Runnable {
         showSLAButton.setSelected(b);
     }
 
-    private void showMWPButton(ActionEvent e) {
+    private void showMWPButtonHandler(ActionEvent e) {
         boolean b;
         Object source = e.getSource();
         if (source instanceof JCheckBox) {
@@ -459,7 +468,7 @@ public class Application implements ActionListener, Runnable {
         showMWPButton.setSelected(b);
     }
 
-    private void showHPLButton(ActionEvent e) {
+    private void showHPLButtonHandler(ActionEvent e) {
         boolean b;
         Object source = e.getSource();
         if (source instanceof JCheckBox) {
@@ -471,6 +480,14 @@ public class Application implements ActionListener, Runnable {
         }
         hplProperties.toggleHPLVisibility(b);
         showHPLMenuItem.setSelected(b);
+    }
+
+    private void showPercentileChartHandler(ActionEvent e) {
+        viewProperties.toogleBottomChartType(LatencyChartType.PERCENTILE);
+    }
+
+    private void showBucketsChartHandler(ActionEvent e) {
+        viewProperties.toogleBottomChartType(LatencyChartType.BUCKETS);
     }
 
     private void aboutHandler() {
@@ -488,6 +505,10 @@ public class Application implements ActionListener, Runnable {
     private JCheckBoxMenuItem showMWPMenuItem;
     private JCheckBoxMenuItem showHPLMenuItem;
 
+    private JMenuItem bottomChartMenu;
+    private JRadioButtonMenuItem showPercentileChart;
+    private JRadioButtonMenuItem showBucketsChart;
+
     private void enableMenuItems(boolean b) {
         snapshotMenuItem.setEnabled(b);
         configureSLAMenuItem.setEnabled(b);
@@ -497,6 +518,10 @@ public class Application implements ActionListener, Runnable {
         showSLAMenuItem.setEnabled(b);
         showMWPMenuItem.setEnabled(b);
         showHPLMenuItem.setEnabled(b);
+
+        bottomChartMenu.setEnabled(b);
+        showPercentileChart.setEnabled(b);
+        showBucketsChart.setEnabled(b);
     }
 
     private void create_menubar() {
@@ -554,18 +579,33 @@ public class Application implements ActionListener, Runnable {
         showSLAMenuItem.setMnemonic(KeyEvent.VK_S);
         showSLAMenuItem.setAccelerator(KeyStroke.getKeyStroke('S', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         showSLAMenuItem.setToolTipText("Enable/Disable SLA");
-        showSLAMenuItem.setActionCommand("showSLAButton");
+        showSLAMenuItem.setActionCommand("showSLAButtonHandler");
         showSLAMenuItem.addActionListener(this);
 
         showMWPMenuItem = new JCheckBoxMenuItem("Show MWP");
         showMWPMenuItem.setToolTipText("Enable/Disable MWP");
-        showMWPMenuItem.setActionCommand("showMWPButton");
+        showMWPMenuItem.setActionCommand("showMWPButtonHandler");
         showMWPMenuItem.addActionListener(this);
 
         showHPLMenuItem = new JCheckBoxMenuItem("Show percentile lines");
         showHPLMenuItem.setToolTipText("Enable/Disable percentile lines");
-        showHPLMenuItem.setActionCommand("showHPLButton");
+        showHPLMenuItem.setActionCommand("showHPLButtonHandler");
         showHPLMenuItem.addActionListener(this);
+
+        // REMIND: better icons
+        ButtonGroup bottomChartGroup = new ButtonGroup();
+        bottomChartMenu = new JMenu("Bottom chart");
+
+        showPercentileChart = new JRadioButtonMenuItem("Percentile chart");
+        showPercentileChart.setToolTipText("Show percentile chart");
+        showPercentileChart.setActionCommand("showPercentileChartHandler");
+        showPercentileChart.addActionListener(this);
+        showPercentileChart.setSelected(true);
+
+        showBucketsChart = new JRadioButtonMenuItem("Buckets chart");
+        showBucketsChart.setToolTipText("Show buckets chart");
+        showBucketsChart.setActionCommand("showBucketsChartHandler");
+        showBucketsChart.addActionListener(this);
 
         JMenuItem aboutMenuItem = new JMenuItem("About");
         aboutMenuItem.setActionCommand("aboutHandler");
@@ -589,6 +629,13 @@ public class Application implements ActionListener, Runnable {
         viewMenu.add(showSLAMenuItem);
         viewMenu.add(showMWPMenuItem);
         viewMenu.add(showHPLMenuItem);
+        viewMenu.addSeparator();
+        viewMenu.add(bottomChartMenu);
+
+        bottomChartMenu.add(showPercentileChart);
+        bottomChartMenu.add(showBucketsChart);
+        bottomChartGroup.add(showPercentileChart);
+        bottomChartGroup.add(showBucketsChart);
 
         helpMenu.add(aboutMenuItem);
     }
@@ -647,13 +694,13 @@ public class Application implements ActionListener, Runnable {
         showSLAButton = new JCheckBox("Show SLA");
         showSLAButton.setMnemonic(KeyEvent.VK_S);
         showSLAButton.setToolTipText("Enable/Disable SLA");
-        showSLAButton.setActionCommand("showSLAButton");
+        showSLAButton.setActionCommand("showSLAButtonHandler");
         showSLAButton.addActionListener(this);
         tool.add(showSLAButton, BorderLayout.WEST);
 
         showMWPButton = new JCheckBox("Show MWP");
         showMWPButton.setToolTipText("Enable/Disable MWP");
-        showMWPButton.setActionCommand("showMWPButton");
+        showMWPButton.setActionCommand("showMWPButtonHandler");
         showMWPButton.addActionListener(this);
         tool.add(showMWPButton, BorderLayout.WEST);
 
@@ -773,6 +820,10 @@ public class Application implements ActionListener, Runnable {
         return hplProperties;
     }
 
+    ViewProperties getViewProperties() {
+        return viewProperties;
+    }
+
     private void run(File[] inputFiles) throws IOException {
         updateLabel("Please wait... Processing log files");
         showMainPanel();
@@ -841,7 +892,7 @@ public class Application implements ActionListener, Runnable {
         }
 
         // Process the properties file and the command-line arguments
-        jHiccupViewerConfiguration = new JHiccupViewerConfiguration();
+        jHiccupViewerConfiguration = JHiccupViewerConfiguration.getInstance();
         new JHiccupViewerCommandLineArguments(jHiccupViewerConfiguration, args);
 
         SwingUtilities.invokeLater(new Application());

@@ -7,5 +7,6 @@ package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
 public enum LatencyChartType {
     TIMELINE,
-    PERCENTILE
+    PERCENTILE,
+    BUCKETS
 }

@@ -31,7 +31,8 @@ public class LatencyTabbedPane extends DnDTabbedPane {
         PlotFilesMode mode;
         if (!multipleFiles) {
             LatencyPanel latencyPanel = new LatencyPanel(inputFileNames,
-                    app.getSlaProperties(), app.getMwpProperties(), app.getHplProperties());
+                    app.getSlaProperties(), app.getMwpProperties(),
+                    app.getHplProperties(), app.getViewProperties());
             if (needNewTab) {
                 add_to_newtab(latencyPanel);
             } else {
@@ -52,7 +53,8 @@ public class LatencyTabbedPane extends DnDTabbedPane {
 
             if (mode == PlotFilesMode.SAME_CHART) {
                 LatencyPanel latencyPanel = new LatencyPanel(inputFileNames,
-                        app.getSlaProperties(), app.getMwpProperties(), app.getHplProperties());
+                        app.getSlaProperties(), app.getMwpProperties(),
+                        app.getHplProperties(), app.getViewProperties());
                 if (needNewTab) {
                     add_to_newtab(latencyPanel);
                 } else {
@@ -61,7 +63,8 @@ public class LatencyTabbedPane extends DnDTabbedPane {
             } else {
                 for (String inputFileName : inputFileNames) {
                     LatencyPanel latencyPanel = new LatencyPanel(inputFileName,
-                            app.getSlaProperties(), app.getMwpProperties(), app.getHplProperties());
+                            app.getSlaProperties(), app.getMwpProperties(),
+                            app.getHplProperties(), app.getViewProperties());
                     if (mode == PlotFilesMode.SAME_TAB && !needNewTab) {
                         add_to_currenttab(latencyPanel);
                     } else {

@@ -31,6 +31,7 @@ class DBManager {
                     "latencyAxisValue REAL, " +
                     "percentileAxisValue REAL, " +
                     "percentileValue REAL, " +
+                    "countAtValue REAL, " +
                     "tag REAL);";
             db.statement.execute(db_create_j_hst);
 
@@ -102,6 +103,7 @@ class DBManager {
                     String.valueOf(po.getLatencyAxisValue()) + "\", \"" +
                     String.valueOf(po.getPercentileAxisValue()) + "\", \"" +
                     String.valueOf(po.getPercentileValue()) + "\", \"" +
+                    String.valueOf(po.getCountAtValue()) + "\", \"" +
                     po.getTag() + "\")";
 
             db.statement.execute(db_insert_j_hst);
@@ -110,8 +112,8 @@ class DBManager {
         }
     }
 
-    PercentileIterator listPercentileObjects(String tag, PercentileObject mpo) {
-        String queryString = createPercentileQueryString(tag, mpo);
+    PercentileIterator listPercentileObjects(String tag, PercentileObject limitObject) {
+        String queryString = createPercentileQueryString(tag, limitObject);
         ResultSet rs = null;
         try {
             rs = db.statement.executeQuery(queryString);
@@ -121,25 +123,16 @@ class DBManager {
         return new PercentileIterator(rs);
     }
 
-    private String createPercentileQueryString(String tag, PercentileObject mpo) {
-        return "select * from j_hst where latencyAxisValue < " + String.valueOf(mpo.getLatencyAxisValue()) +
-               " and tag='"+ tag + "';";
-    }
+    private String createPercentileQueryString(String tag, PercentileObject limitObject) {
+        String  queryString = "select * from j_hst where tag='" + tag + "'";
 
-    PercentileIterator listHPLPercentileObjects(String tag) {
-        String queryString = createHPLPercentileQueryString(tag);
-        ResultSet rs = null;
-        try {
-            rs = db.statement.executeQuery(queryString);
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (limitObject != null) {
+            queryString += " and latencyAxisValue < " + String.valueOf(limitObject.getLatencyAxisValue());
         }
-        return new PercentileIterator(rs);
-    }
 
-    private String createHPLPercentileQueryString(String tag) {
-        return "select * from j_hst where percentileValue in (0.99, 0.999, 0.9999)" +
-                " and tag='"+ tag + "';";
+        queryString += ";";
+
+        return queryString;
     }
 
     MaxPercentileIterator listMaxPercentileObjects(String tag) {
@@ -159,5 +152,11 @@ class DBManager {
                 "max(cast(PercentileAxisValue as float) ) as MaxPercentileAxisValue, "+
                 "max(cast(PercentileValue as float) ) as MaxPercentileValue from j_hst"+
                 " where tag='"+ tag + "';";
+    }
+
+    BucketIterator listBucketObjects(String tag) {
+        PercentileIterator pi = listPercentileObjects(tag, null);
+
+        return new BucketIterator(pi);
     }
 }

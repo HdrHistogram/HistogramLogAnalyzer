@@ -5,6 +5,7 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
+import org.HdrHistogram.HistogramLogAnalyzer.charts.BucketsChartBuilder;
 import org.HdrHistogram.HistogramLogAnalyzer.charts.PercentileChartBuilder;
 import org.HdrHistogram.HistogramLogAnalyzer.charts.TimelineChartBuilder;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
@@ -13,8 +14,11 @@ import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
 
 import javax.swing.*;
+import javax.swing.text.View;
 import java.awt.GridLayout;
 import java.awt.Color;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,8 +32,12 @@ import java.util.Map;
 class LatencyPanel extends JPanel
 {
     private static TimelineChartBuilder timelineChartBuilder = new TimelineChartBuilder();
-
     private static PercentileChartBuilder percentileChartBuilder = new PercentileChartBuilder();
+    private static BucketsChartBuilder bucketsChartBuilder = new BucketsChartBuilder();
+
+    private JPanel bottomChart = null;
+    private JPanel percentileChart = null;
+    private JPanel bucketsChart = null;
 
     private List< HistogramModel> histogramModels = new ArrayList<>();
     private ScaleProperties scaleProperties = null;
@@ -39,13 +47,18 @@ class LatencyPanel extends JPanel
     private String[] tooltipTexts;
 
     LatencyPanel(String inputFileName, SLAProperties slaProperties,
-                 MWPProperties mwpProperties, HPLProperties hplProperties) throws IOException
+                 MWPProperties mwpProperties, HPLProperties hplProperties,
+                 ViewProperties viewProperties)
+        throws IOException
     {
-        this(new String[] {inputFileName}, slaProperties, mwpProperties, hplProperties);
+        this(new String[] {inputFileName}, slaProperties,
+                mwpProperties, hplProperties, viewProperties);
     }
 
     LatencyPanel(String[] inputFileNames, SLAProperties slaProperties,
-                 MWPProperties mwpProperties, HPLProperties hplProperties) throws IOException
+                 MWPProperties mwpProperties, HPLProperties hplProperties,
+                 final ViewProperties viewProperties)
+        throws IOException
     {
         ZoomProperty zoomProperty = new ZoomProperty();
         scaleProperties = new ScaleProperties();
@@ -64,12 +77,39 @@ class LatencyPanel extends JPanel
         JPanel timelineChart =
                 timelineChartBuilder.createTimelineChart(histogramModels, zoomProperty,
                          mwpProperties, scaleProperties, hplProperties);
-        JPanel percentileChart =
+
+        percentileChart =
                 percentileChartBuilder.createPercentileChart(histogramModels,
                         slaProperties, zoomProperty,mwpProperties, scaleProperties, hplProperties);
 
+        bucketsChart =
+                bucketsChartBuilder.createTimelineChart(histogramModels, hplProperties, zoomProperty, mwpProperties);
+
         add(timelineChart);
-        add(percentileChart);
+        updateBottomChart(viewProperties);
+
+        viewProperties.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("bottomChartTypeChanged")) {
+                    updateBottomChart(viewProperties);
+                }
+            }
+        });
+    }
+
+    private void updateBottomChart(ViewProperties viewProperties) {
+        if (bottomChart != null) {
+            remove(bottomChart);
+        }
+        if (viewProperties.getBottomChartType().equals(LatencyChartType.PERCENTILE)) {
+            bottomChart = percentileChart;
+        } else {
+            bottomChart = bucketsChart;
+        }
+        if (bottomChart != null) {
+            add(bottomChart);
+        }
     }
 
     private void initUISettings() {

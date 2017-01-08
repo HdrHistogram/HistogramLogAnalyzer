@@ -7,15 +7,26 @@ package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
 public class JHiccupViewerConfiguration {
 
-    // All configurable options (try to keep them in order in the various sections)
-    private String     _nameOfJHiccupFileToOpen;
+    private static final JHiccupViewerConfiguration instance = new JHiccupViewerConfiguration();
 
-    public JHiccupViewerConfiguration() {
-        // Set the default values
-        _nameOfJHiccupFileToOpen = null;
+    private String     _nameOfJHiccupFileToOpen;
+    private boolean enableOldStyleBucketChart = false;
+
+    private JHiccupViewerConfiguration() {
+        String value = System.getProperty("enableOldStyleBucketChart");
+        if ("true".equals(value)) {
+            enableOldStyleBucketChart = true;
+        }
     }
 
-    // Get values
+    public boolean getEnableOldStyleBucketChart() {
+        return enableOldStyleBucketChart;
+    }
+
+    public static JHiccupViewerConfiguration getInstance() {
+        return instance;
+    }
+
     public String nameOfJHiccupFileToOpen() {
         return _nameOfJHiccupFileToOpen;
     }
@@ -23,4 +34,6 @@ public class JHiccupViewerConfiguration {
     public void setNameOfJHiccupFileToOpen(String valueIn) {
         _nameOfJHiccupFileToOpen = valueIn;
     }
+
+
 }

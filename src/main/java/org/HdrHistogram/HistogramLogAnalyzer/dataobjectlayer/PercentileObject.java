@@ -12,10 +12,14 @@ public class PercentileObject {
     private double percentileAxisValue;
     private double percentileValue;
 
+    private double countAtValue;
+
     private String tag;
 
     // "insert" object
-	public PercentileObject(double latencyAxisValue, double percentileValue, String tag) {
+	public PercentileObject(double latencyAxisValue, double percentileValue,
+							double countAtValue, String tag)
+	{
 		this.latencyAxisValue = latencyAxisValue;
 
         Double cvalue = 1.0d/ (1.0-percentileValue);
@@ -25,14 +29,20 @@ public class PercentileObject {
         this.percentileAxisValue = cvalue;
         this.percentileValue = percentileValue;
 
+        this.countAtValue = countAtValue;
+
         this.tag = tag;
 	}
 
 	// "query" object
-	public PercentileObject(double latencyAxisValue, double percentileAxisValue, double percentileValue) {
+	public PercentileObject(double latencyAxisValue, double percentileAxisValue,
+							double percentileValue, double countAtValue)
+	{
 		this.latencyAxisValue = latencyAxisValue;
 		this.percentileAxisValue = percentileAxisValue;
 		this.percentileValue = percentileValue;
+		this.countAtValue = countAtValue;
+
 	}
 
 	public double getLatencyAxisValue() {
@@ -45,6 +55,10 @@ public class PercentileObject {
 
 	public double getPercentileValue() {
 		return percentileValue;
+	}
+
+	public double getCountAtValue() {
+		return countAtValue;
 	}
 
 	public String getTag() {

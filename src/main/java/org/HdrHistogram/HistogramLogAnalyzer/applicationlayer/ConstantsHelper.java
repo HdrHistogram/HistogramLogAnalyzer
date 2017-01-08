@@ -22,6 +22,8 @@ public class ConstantsHelper {
                 return getLatencyName() + " By Percentile Distribution";
             case TIMELINE:
                 return "Maximum " + getLatencyName() + " In Time Interval";
+            case BUCKETS:
+                return "Raw " + getLatencyName() + " Duration Bucketed Values";
         }
         throw new IllegalArgumentException();
     }
@@ -32,6 +34,8 @@ public class ConstantsHelper {
                 return "Percentile";
             case TIMELINE:
                 return "Elapsed Time (sec)";
+            case BUCKETS:
+                return "Bucketed Raw " + getLatencyName() + " Duration (msec)";
         }
         throw new IllegalArgumentException();
     }
@@ -42,6 +46,8 @@ public class ConstantsHelper {
                 return getLatencyName() + " Duration (msec)";
             case TIMELINE:
                 return getLatencyName() + " Duration (msec)";
+            case BUCKETS:
+                return "Number in buckets";
         }
         throw new IllegalArgumentException();
     }
