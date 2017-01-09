@@ -39,11 +39,12 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.plot.XYPlot;
 
-public class Application implements ActionListener, Runnable {
+public class Application implements ActionListener {
 
     private SLAProperties slaProperties = new SLAProperties();
     private MWPProperties mwpProperties = new MWPProperties();
@@ -85,9 +86,6 @@ public class Application implements ActionListener, Runnable {
 
     // The directory we were in when we started jHiccupLogAnalyzer
     private static String _currentWorkingDirectory = null;
-
-    // Properties and command line arguments processing
-    private static JHiccupViewerConfiguration jHiccupViewerConfiguration = null; // Overall configuration including properties and command line arguments
 
     private void openFiles(File[] inputFiles) {
         try {
@@ -747,7 +745,22 @@ public class Application implements ActionListener, Runnable {
         });
     }
 
+    private void enableNimbusLookAndFeel() {
+        try {
+            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception except) {
+            except.printStackTrace();
+        }
+    }
+
     private void prepare_ui() {
+        enableNimbusLookAndFeel();
+
         mainframe = new JFrame(APP_TITLE);
         mainframe.setIconImage((new ImageIcon(getClass().getResource("azul_logo.png")).getImage()));
         mainframe.addWindowListener(new WindowAdapter() {
@@ -793,7 +806,7 @@ public class Application implements ActionListener, Runnable {
 
         mainPanel.add("mainPanel", bottompanel);
 
-        String inputFileName = jHiccupViewerConfiguration.nameOfJHiccupFileToOpen();
+        String inputFileName = Configuration.getInstance().getInputFileName();
         if (inputFileName != null) {
             File[] inputFiles = new File[] {new File(inputFileName)};
             openFiles(inputFiles);
@@ -832,11 +845,6 @@ public class Application implements ActionListener, Runnable {
         tabbedPane.repaint();
 
         mainframe.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-    }
-
-    @Override
-    public void run() {
-        prepare_ui();
     }
 
     private void saveLastDirectory(String lastSelectedDirectory) {
@@ -879,22 +887,32 @@ public class Application implements ActionListener, Runnable {
         return _currentWorkingDirectory; 
     }
 
-    public static void main(String args[]) {
-        try {
-            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
+    public static void main(final String args[]) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Configuration.getInstance().parseArgs(args);
+                checkConsoleMode();
+
+                new Application().prepare_ui();
             }
-        } catch (Exception except) {
-            except.printStackTrace();
+        });
+    }
+
+    /*
+     * Checks if console mode enabled
+     */
+    private static void checkConsoleMode() {
+        if (Configuration.getInstance().isEAPmode()) {
+            MWPProperties mwpProperties = new MWPProperties();
+            try {
+                HistogramModel model =
+                    new HistogramModel(Configuration.getInstance().getInputFileName(), null, null, mwpProperties);
+                PrintStatistics.print(model);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.exit(1);
         }
-
-        // Process the properties file and the command-line arguments
-        jHiccupViewerConfiguration = JHiccupViewerConfiguration.getInstance();
-        new JHiccupViewerCommandLineArguments(jHiccupViewerConfiguration, args);
-
-        SwingUtilities.invokeLater(new Application());
     }
 }

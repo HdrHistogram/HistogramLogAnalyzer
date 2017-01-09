@@ -59,15 +59,15 @@ class DBManager {
                     to.getTag() + "\",\"" +
                     to.getMwpPercentile() + "\",\"" +
                     to.getMwpWindowLength() + "\");";
-
             db.statement.execute(db_insert_j_percentile);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    TimelineIterator listTimelineObjects(boolean multipleTags, String tag, MWPProperties.MWPEntry mwpEntry) {
-        String queryString = createTimelineQueryString(multipleTags, tag, mwpEntry);
+    TimelineIterator listTimelineObjects(boolean multipleTags, String tag,
+                                         MWPProperties.MWPEntry mwpEntry, int topLatencies) {
+        String queryString = createTimelineQueryString(multipleTags, tag, mwpEntry, topLatencies);
         ResultSet rs = null;
         try {
             rs = db.statement.executeQuery(queryString);
@@ -77,20 +77,25 @@ class DBManager {
         return new TimelineIterator(rs);
     }
 
-    private String createTimelineQueryString(boolean multipleTags, String tag, MWPProperties.MWPEntry mwpEntry) {
-        String ret;
+    private String createTimelineQueryString(boolean multipleTags, String tag,
+                                             MWPProperties.MWPEntry mwpEntry, int topLatencies)
+    {
+        String topLatenciesString =
+            (topLatencies > 0) ? " order by latencyAxisValue desc limit " + topLatencies : "";
+
         if (multipleTags) {
             MWPProperties.MWPEntry defaultMWPEntry = MWPProperties.getDefaultMWPEntry();
-            ret = "select timelineAxisValue,latencyAxisValue from j_percentile" +
+            return "select timelineAxisValue,latencyAxisValue from j_percentile" +
                     " where tag='"+ tag + "'" +
                     " and mwp_percentile='" + defaultMWPEntry.getPercentile() + "'" +
-                    " and mwp_windowLength='" + defaultMWPEntry.getWindowLength() + "';";
+                    " and mwp_windowLength='" + defaultMWPEntry.getWindowLength() + "'" +
+                    topLatenciesString + ";";
         } else {
-            ret = "select timelineAxisValue,latencyAxisValue from j_percentile" +
+            return "select timelineAxisValue,latencyAxisValue from j_percentile" +
                     " where mwp_percentile='" + mwpEntry.getPercentile() + "'" +
-                    " and mwp_windowLength='" + mwpEntry.getWindowLength() + "';";
+                    " and mwp_windowLength='" + mwpEntry.getWindowLength() + "'" +
+                    topLatenciesString + ";";
         }
-        return ret;
     }
 
     /*

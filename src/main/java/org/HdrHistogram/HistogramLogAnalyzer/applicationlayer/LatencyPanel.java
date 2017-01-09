@@ -14,17 +14,13 @@ import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
 
 import javax.swing.*;
-import javax.swing.text.View;
 import java.awt.GridLayout;
 import java.awt.Color;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /*
  * Custom JPanel that contains top (timeline) and bottom (percentile) charts
@@ -66,6 +62,10 @@ class LatencyPanel extends JPanel
         for (String inputFileName : inputFileNames) {
             HistogramModel histogramModel =
                     new HistogramModel(inputFileName, null, null, mwpProperties);
+            // print statistics to console when requested
+            if (Configuration.getInstance().isPPmode()) {
+                PrintStatistics.print(histogramModel);
+            }
             histogramModels.add(histogramModel);
         }
 

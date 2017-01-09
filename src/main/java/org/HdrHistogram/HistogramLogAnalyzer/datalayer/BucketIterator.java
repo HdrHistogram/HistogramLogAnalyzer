@@ -5,7 +5,7 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.JHiccupViewerConfiguration;
+import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.Configuration;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.BucketObject;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
 
@@ -36,7 +36,7 @@ public class BucketIterator implements Iterator {
         double latencyValue = po.getLatencyAxisValue();
         double countAtValue = po.getCountAtValue();
 
-        if (JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+        if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
             latencyValue += getExtraHiccupValue(latencyValue);
         }
 

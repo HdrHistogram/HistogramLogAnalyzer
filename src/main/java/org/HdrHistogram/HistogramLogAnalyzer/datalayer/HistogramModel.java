@@ -18,8 +18,13 @@ import java.util.*;
 
 public class HistogramModel {
     private String inputFileName;
+
+    // range to process
     private String startTime;
     private String endTime;
+
+    // latest start time
+    private double latestStartTime;
 
     private MWPProperties mwpProperties;
     private Set<String> tags;
@@ -62,6 +67,10 @@ public class HistogramModel {
 
     public String getInputFileName() {
         return inputFileName;
+    }
+
+    public double getLatestStartTime() {
+        return latestStartTime;
     }
 
     public LogGeneratorType getLogGeneratorType() {
@@ -126,6 +135,8 @@ public class HistogramModel {
     {
         HistogramLogReader reader = new HistogramLogReader(new File(inputFileName));
         EncodableHistogram intervalHistogram = getIntervalHistogram(reader, tag);
+
+        latestStartTime = reader.getStartTimeSec();
 
         if (intervalHistogram == null) {
             return; // no interval found
@@ -260,7 +271,12 @@ public class HistogramModel {
      * queries
      */
     public TimelineIterator listTimelineObjects(boolean multipleTags, String tag, MWPProperties.MWPEntry mwpEntry) {
-        return dbManager.listTimelineObjects(multipleTags, tag, mwpEntry);
+        return listTimelineObjects(multipleTags, tag, mwpEntry, 0);
+    }
+
+    public TimelineIterator listTimelineObjects(boolean multipleTags, String tag, MWPProperties.MWPEntry mwpEntry,
+                                                int topLatencies) {
+        return dbManager.listTimelineObjects(multipleTags, tag, mwpEntry, topLatencies);
     }
 
     public PercentileIterator listPercentileObjects(String tag, PercentileObject limitObject) {

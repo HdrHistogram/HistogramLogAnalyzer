@@ -80,7 +80,7 @@ public class BucketsChartBuilder {
                         Boolean flag = renderer.getSeriesLinesVisible(i);
                         if (key.equals(legendItemEntity.getSeriesKey())) {
                             renderer.setSeriesLinesVisible(i, !flag);
-                            if (JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+                            if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
                                 if (!(key.endsWith("%") && key.endsWith("Max"))) {
                                     renderer.setSeriesShapesVisible(i, !flag);
                                 }
@@ -170,7 +170,7 @@ public class BucketsChartBuilder {
         XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
 
 
-        if (JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+        if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
             LogAxis logDomain = new LogAxis(xAxisLabel);
             plot.setDomainAxis(0, logDomain);
 
@@ -217,13 +217,13 @@ public class BucketsChartBuilder {
             boolean hplKey = key.endsWith("%") || key.endsWith("Max");
             if (!hplKey) {
                 renderer.setSeriesStroke(i, new BasicStroke(1.0f, java.awt.BasicStroke.CAP_SQUARE, java.awt.BasicStroke.JOIN_MITER));
-                if (!JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+                if (!Configuration.getInstance().getEnableOldStyleBucketChart()) {
                     renderer.setSeriesShapesVisible(i, false);
                 }
             } else {
                 renderer.setSeriesStroke(i, new BasicStroke(2.0f));
                 renderer.setSeriesShapesVisible(i, false);
-                if (JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+                if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
                     renderer.setSeriesItemLabelGenerator(i, new XYItemLabelGenerator() {
                         @Override
                         public String generateLabel(XYDataset arg0, int arg1, int arg2) {
@@ -293,7 +293,7 @@ public class BucketsChartBuilder {
                     double latencyValue = po.getLatencyAxisValue() + bi.getValueToAddForZeroOrOneBasedJHiccupValue();
                     double maxCountAtValue = bi.getMaxCountAtValue();
 
-                    if (JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+                    if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
                         double maximumHiccupValueCountDividedBy3  = maxCountAtValue /  3.3D;
                         double maximumHiccupValueCountDividedBy10 = maxCountAtValue / 10.0D;
 
@@ -308,7 +308,7 @@ public class BucketsChartBuilder {
                 }
 
                 // Max line
-                if (!JHiccupViewerConfiguration.getInstance().getEnableOldStyleBucketChart()) {
+                if (!Configuration.getInstance().getEnableOldStyleBucketChart()) {
                     Double maxLatencyAxisValue = 0.0;
                     MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(null);
                     PercentileObject mpo;
@@ -345,7 +345,6 @@ public class BucketsChartBuilder {
                     BucketObject bo = (BucketObject) bi.next();
                     double hiccupValue = bo.getLatencyValue();
                     double totalCount = bo.getCountAtValue();
-                    // REMIND: move to iterator?
                     if (totalCount == 0) {
                         continue;
                     }
