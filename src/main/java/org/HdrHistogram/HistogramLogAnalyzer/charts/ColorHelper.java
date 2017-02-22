@@ -17,24 +17,20 @@ class ColorHelper {
         colors.add(Color.RED);
         colors.add(Color.BLUE);
         colors.add(Color.GREEN);
+        colors.add(Color.MAGENTA);
+        colors.add(Color.CYAN);
     }
 
-    private static void ensireSize(int size) {
-        colors.ensureCapacity(size);
+    private static void ensureSize(int size) {
         while (colors.size() < size) {
-            colors.add(null);
+            Random r = new Random();
+            colors.add(new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255)));
         }
     }
 
     static Color getColor(int i) {
-        ensireSize(i + 1);
-        Color c = colors.get(i);
-        if (c == null) {
-            Random r = new Random();
-            c = new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255));
-            colors.add(c);
-        }
-        return c;
+        ensureSize(i + 1);
+        return colors.get(i);
     }
 
     static Color getSLAColor() {
