@@ -80,11 +80,6 @@ public class BucketsChartBuilder {
                         Boolean flag = renderer.getSeriesLinesVisible(i);
                         if (key.equals(legendItemEntity.getSeriesKey())) {
                             renderer.setSeriesLinesVisible(i, !flag);
-                            if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
-                                if (!(key.endsWith("%") && key.endsWith("Max"))) {
-                                    renderer.setSeriesShapesVisible(i, !flag);
-                                }
-                            }
                         }
                     }
                 }
@@ -169,36 +164,27 @@ public class BucketsChartBuilder {
         XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
         XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
 
+        LogAxis logDomain = new LogAxis(xAxisLabel);
+        logDomain.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        logDomain.setMinorTickMarksVisible(false);
+        logDomain.setBase(10);
+        DecimalFormat df = new DecimalFormat("0.###");
+        df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.ENGLISH));
+        logDomain.setNumberFormatOverride(df);
 
-        if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
-            LogAxis logDomain = new LogAxis(xAxisLabel);
-            plot.setDomainAxis(0, logDomain);
+        logDomain.setLabelFont(plot.getDomainAxis().getLabelFont());
+        plot.setDomainAxis(0, logDomain);
 
-            LogAxis logRange = new LogAxis(yAxisLabel);
-            plot.setRangeAxis(0, logRange);
-        } else {
-            LogAxis logDomain = new LogAxis(xAxisLabel);
-            logDomain.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-            logDomain.setMinorTickMarksVisible(false);
-            logDomain.setBase(10);
-            DecimalFormat df = new DecimalFormat("0.###");
-            df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.ENGLISH));
-            logDomain.setNumberFormatOverride(df);
+        LogAxis logRange = new LogAxis(yAxisLabel);
+        logRange.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        logRange.setMinorTickMarksVisible(false);
+        logRange.setBase(10);
+        df = new DecimalFormat("#,###,###");
+        df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.ENGLISH));
+        logRange.setNumberFormatOverride(df);
 
-            logDomain.setLabelFont(plot.getDomainAxis().getLabelFont());
-            plot.setDomainAxis(0, logDomain);
-
-            LogAxis logRange = new LogAxis(yAxisLabel);
-            logRange.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-            logRange.setMinorTickMarksVisible(false);
-            logRange.setBase(10);
-            df = new DecimalFormat("#,###,###");
-            df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.ENGLISH));
-            logRange.setNumberFormatOverride(df);
-
-            logRange.setLabelFont(plot.getRangeAxis().getLabelFont());
-            plot.setRangeAxis(0, logRange);
-        }
+        logRange.setLabelFont(plot.getRangeAxis().getLabelFont());
+        plot.setRangeAxis(0, logRange);
 
         for (int i = 0; i < plot.getSeriesCount(); i++) {
 
@@ -217,29 +203,10 @@ public class BucketsChartBuilder {
             boolean hplKey = key.endsWith("%") || key.endsWith("Max");
             if (!hplKey) {
                 renderer.setSeriesStroke(i, new BasicStroke(1.0f, java.awt.BasicStroke.CAP_SQUARE, java.awt.BasicStroke.JOIN_MITER));
-                if (!Configuration.getInstance().getEnableOldStyleBucketChart()) {
-                    renderer.setSeriesShapesVisible(i, false);
-                }
+                renderer.setSeriesShapesVisible(i, false);
             } else {
                 renderer.setSeriesStroke(i, new BasicStroke(2.0f));
                 renderer.setSeriesShapesVisible(i, false);
-                if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
-                    renderer.setSeriesItemLabelGenerator(i, new XYItemLabelGenerator() {
-                        @Override
-                        public String generateLabel(XYDataset arg0, int arg1, int arg2) {
-                            // Stagger the labels so that they do not overwrite one another
-                            // System.out.println("arg 0 1 2 " + arg0 + " " + arg1 + " " + arg2);
-                            if (((arg1 == 3) && (arg2 == 0)) ||
-                                    ((arg1 == 2) && (arg2 == 1)) ||
-                                    ((arg1 == 1) && (arg2 == 2))) {
-                                Double d = arg0.getXValue(arg1, arg2);
-                                return String.format("%.3f", d);
-                            } else {
-                                return null;
-                            }
-                        }
-                    });
-                }
                 renderer.setSeriesItemLabelsVisible(i, true);
             }
         }
@@ -290,37 +257,26 @@ public class BucketsChartBuilder {
                     key = !key.contains(".") ? key : key.replaceAll("0*$", "").replaceAll("\\.$", "");
                     series = new XYSeries(key +"%");
 
-                    double latencyValue = po.getLatencyAxisValue() + bi.getValueToAddForZeroOrOneBasedJHiccupValue();
-                    double maxCountAtValue = bi.getMaxCountAtValue();
+                    double latencyValue = po.getLatencyAxisValue();
 
-                    if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
-                        double maximumHiccupValueCountDividedBy3  = maxCountAtValue /  3.3D;
-                        double maximumHiccupValueCountDividedBy10 = maxCountAtValue / 10.0D;
-
-                        series.add(latencyValue, maximumHiccupValueCountDividedBy10);
-                        series.add(latencyValue, maximumHiccupValueCountDividedBy3);
-                        series.add(latencyValue, maxCountAtValue);
-                    } else {
-                        series.add(latencyValue, ret.getRangeLowerBound(false));
-                        series.add(latencyValue, ret.getRangeUpperBound(false));
-                    }
+                    series.add(latencyValue, ret.getRangeLowerBound(false));
+                    series.add(latencyValue, ret.getRangeUpperBound(false));
                     ret.addSeries(series);
                 }
 
                 // Max line
-                if (!Configuration.getInstance().getEnableOldStyleBucketChart()) {
-                    Double maxLatencyAxisValue = 0.0;
-                    MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(null);
-                    PercentileObject mpo;
-                    while (mpi.hasNext()) {
-                        mpo = mpi.next();
-                        maxLatencyAxisValue = Math.max(maxLatencyAxisValue, mpo.getLatencyAxisValue());
-                    }
-                    series = new XYSeries("Max");
-                    series.add(ret.getDomainUpperBound(false), ret.getRangeLowerBound(false));
-                    series.add(ret.getDomainUpperBound(false), ret.getRangeUpperBound(false));
-                    ret.addSeries(series);
+                Double maxLatencyAxisValue = 0.0;
+                MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(null);
+                PercentileObject mpo;
+                while (mpi.hasNext()) {
+                    mpo = mpi.next();
+                    maxLatencyAxisValue = Math.max(maxLatencyAxisValue, mpo.getLatencyAxisValue());
                 }
+                series = new XYSeries("Max");
+                series.add(ret.getDomainUpperBound(false), ret.getRangeLowerBound(false));
+                series.add(ret.getDomainUpperBound(false), ret.getRangeUpperBound(false));
+                ret.addSeries(series);
+
                 return ret;
             }
         }

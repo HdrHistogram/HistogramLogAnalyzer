@@ -15,9 +15,6 @@ public class BucketIterator implements Iterator {
 
     private PercentileIterator pi;
 
-    private boolean processedInitialValue = false;
-    private double valueToAddForZeroOrOneBasedJHiccupValue = 0.0D;
-
     private double maxCountAtValue = 0.0D;
 
     BucketIterator(PercentileIterator pi) {
@@ -36,10 +33,6 @@ public class BucketIterator implements Iterator {
         double latencyValue = po.getLatencyAxisValue();
         double countAtValue = po.getCountAtValue();
 
-        if (Configuration.getInstance().getEnableOldStyleBucketChart()) {
-            latencyValue += getExtraHiccupValue(latencyValue);
-        }
-
         if (countAtValue > maxCountAtValue) {
             maxCountAtValue = countAtValue;
         }
@@ -49,23 +42,6 @@ public class BucketIterator implements Iterator {
 
     public double getMaxCountAtValue() {
         return maxCountAtValue;
-    }
-
-    private double getExtraHiccupValue(double hiccupValue) {
-        // Some of the versions of jHiccup have hiccup values that use the raw values
-        // (non-zero based) rather than just the hiccup values. We try to catch those
-        // cases here.
-        if (!processedInitialValue) {
-            if (hiccupValue < 0.5D) {
-                valueToAddForZeroOrOneBasedJHiccupValue = 1.0D;
-                processedInitialValue = true;
-            }
-        }
-        return valueToAddForZeroOrOneBasedJHiccupValue;
-    }
-
-    public double getValueToAddForZeroOrOneBasedJHiccupValue() {
-        return valueToAddForZeroOrOneBasedJHiccupValue;
     }
 
     @Override

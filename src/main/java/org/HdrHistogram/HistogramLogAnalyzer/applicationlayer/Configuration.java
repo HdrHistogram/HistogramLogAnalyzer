@@ -15,9 +15,6 @@ public class Configuration {
     private boolean helpMode = false;
     private String inputFileName;
 
-    // temp option to highlight changes in Buckets chart
-    private boolean enableOldStyleBucketChart = false;
-
     // options related to console mode
     private boolean ppMode = false;
     private int nlhValue = 15;
@@ -25,14 +22,6 @@ public class Configuration {
     private boolean eapMode = false;
 
     private Configuration() {
-        String value = System.getProperty("enableOldStyleBucketChart");
-        if ("true".equals(value)) {
-            enableOldStyleBucketChart = true;
-        }
-    }
-
-    public boolean getEnableOldStyleBucketChart() {
-        return enableOldStyleBucketChart;
     }
 
     public static Configuration getInstance() {
