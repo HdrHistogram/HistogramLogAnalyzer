@@ -5,7 +5,7 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.MWPProperties;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.*;
 
 import java.sql.ResultSet;

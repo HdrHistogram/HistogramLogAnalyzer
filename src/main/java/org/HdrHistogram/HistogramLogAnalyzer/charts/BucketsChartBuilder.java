@@ -11,17 +11,17 @@ import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.BucketObject;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.AppProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.ZoomProperties;
 import org.jfree.chart.*;
 import org.jfree.chart.axis.LogAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.LegendItemEntity;
 import org.jfree.chart.labels.StandardXYToolTipGenerator;
-import org.jfree.chart.labels.XYItemLabelGenerator;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -39,10 +39,8 @@ import java.util.List;
 
 public class BucketsChartBuilder {
 
-    public JPanel createTimelineChart(final List<HistogramModel> models, final HPLProperties hplProperties,
-                                      ZoomProperty zoomProperty, final MWPProperties mwpProperties)
-    {
-        JFreeChart drawable = createPercentileDrawable(models, hplProperties);
+    public JPanel createBucketsChart(final List<HistogramModel> models, final AppProperties appProperties) {
+        JFreeChart drawable = createBucketsDrawable(models, appProperties);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -89,30 +87,8 @@ public class BucketsChartBuilder {
             }
         });
 
-        // zooming on timeline chart updates percentile chart
-        zoomProperty.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                ZoomProperty.ZoomValue v = (ZoomProperty.ZoomValue) evt.getNewValue();
-                List<HistogramModel> newModels = new ArrayList<>();
-
-                for (HistogramModel model : models) {
-                    String inputFileName = model.getInputFileName();
-                    try {
-                        newModels.add(new HistogramModel(inputFileName,
-                                v.getLowerBoundString(), v.getUpperBoundString(), mwpProperties));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                JFreeChart drawable = createPercentileDrawable(newModels, hplProperties);
-                chartPanel.setChart(drawable);
-            }
-        });
-
         // toggling HPL menu item changes visibility of HPL lines on chart
-        hplProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getHplProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("hplShow")) {
@@ -138,11 +114,11 @@ public class BucketsChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createPercentileDrawable(List<HistogramModel> histogramModels, HPLProperties hplProperties)
+    private JFreeChart createBucketsDrawable(List<HistogramModel> histogramModels, AppProperties appProperties)
     {
-        String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.BUCKETS);
-        String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.BUCKETS);
-        String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.BUCKETS);
+        String chartTitle = ConstantsHelper.getChartTitle(HLAChartType.BUCKETS);
+        String xAxisLabel = ConstantsHelper.getXAxisLabel(HLAChartType.BUCKETS);
+        String yAxisLabel = ConstantsHelper.getYAxisLabel(HLAChartType.BUCKETS);
 
         XYSeriesCollection sc = createXYSeriesCollection(histogramModels);
 
@@ -193,7 +169,7 @@ public class BucketsChartBuilder {
 
             renderer.setSeriesLinesVisible(i, true);
             if (key.endsWith("%") || key.equals("Max")) {
-                renderer.setSeriesVisible(i, hplProperties.isHPLVisible());
+                renderer.setSeriesVisible(i, appProperties.getHplProperties().isHPLVisible());
                 renderer.setSeriesPaint(i, ColorHelper.getHPLColor(key));
                 renderer.setSeriesStroke(i, new BasicStroke(2.0f));
             } else {

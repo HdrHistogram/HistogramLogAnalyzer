@@ -3,9 +3,10 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.panels;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.SLAProperties.SLAEntry;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.SLAProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.SLAProperties.SLAEntry;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +15,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
-class SLAPanel extends JPanel {
+public class SLAPanel extends JPanel {
 
     private JFrame mainframe;
     private JPanel panel;
@@ -22,7 +23,7 @@ class SLAPanel extends JPanel {
 
     private static final int SLA_COLUMNS_NUMBER = 3;
 
-    SLAPanel(JFrame mainframe, SLAProperties slaProperties)
+    public SLAPanel(JFrame mainframe, SLAProperties slaProperties)
     {
         this.mainframe = mainframe;
         this.slaProperties = slaProperties;

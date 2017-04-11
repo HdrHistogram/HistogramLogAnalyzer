@@ -6,6 +6,9 @@
 package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TagsHelper;
+import org.HdrHistogram.HistogramLogAnalyzer.panels.MWPPanel;
+import org.HdrHistogram.HistogramLogAnalyzer.panels.SLAPanel;
+import org.HdrHistogram.HistogramLogAnalyzer.panels.DatePanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,11 +16,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Set;
 
-public class LatencyTabbedPane extends DnDTabbedPane {
+public class HLATabbedPane extends DnDTabbedPane {
 
     private TabsListener tabsListener = null;
 
-    LatencyTabbedPane(TabsListener tabsListener) {
+    HLATabbedPane(TabsListener tabsListener) {
         super();
         this.tabsListener = tabsListener;
     }
@@ -30,9 +33,7 @@ public class LatencyTabbedPane extends DnDTabbedPane {
 
         PlotFilesMode mode;
         if (!multipleFiles) {
-            LatencyPanel latencyPanel = new LatencyPanel(inputFileNames,
-                    app.getSlaProperties(), app.getMwpProperties(),
-                    app.getHplProperties(), app.getViewProperties());
+            HLAPanel latencyPanel = new HLAPanel(inputFileNames, app.getAppProperties());
             if (needNewTab) {
                 add_to_newtab(latencyPanel);
             } else {
@@ -52,9 +53,7 @@ public class LatencyTabbedPane extends DnDTabbedPane {
             }
 
             if (mode == PlotFilesMode.SAME_CHART) {
-                LatencyPanel latencyPanel = new LatencyPanel(inputFileNames,
-                        app.getSlaProperties(), app.getMwpProperties(),
-                        app.getHplProperties(), app.getViewProperties());
+                HLAPanel latencyPanel = new HLAPanel(inputFileNames, app.getAppProperties());
                 if (needNewTab) {
                     add_to_newtab(latencyPanel);
                 } else {
@@ -62,9 +61,7 @@ public class LatencyTabbedPane extends DnDTabbedPane {
                 }
             } else {
                 for (String inputFileName : inputFileNames) {
-                    LatencyPanel latencyPanel = new LatencyPanel(inputFileName,
-                            app.getSlaProperties(), app.getMwpProperties(),
-                            app.getHplProperties(), app.getViewProperties());
+                    HLAPanel latencyPanel = new HLAPanel(inputFileName, app.getAppProperties());
                     if (mode == PlotFilesMode.SAME_TAB && !needNewTab) {
                         add_to_currenttab(latencyPanel);
                     } else {
@@ -93,7 +90,7 @@ public class LatencyTabbedPane extends DnDTabbedPane {
         }
     }
 
-    private void add_to_newtab(LatencyPanel latencyPanel) {
+    private void add_to_newtab(HLAPanel latencyPanel) {
         String tabTitle = latencyPanel.getTabTitle();
         insertTab(tabTitle, null, tab_builder(latencyPanel),
                 getMultiLineTooltipText(latencyPanel.getTooltipTexts()), getTabCount());
@@ -110,13 +107,13 @@ public class LatencyTabbedPane extends DnDTabbedPane {
         return oldTooltipText.replaceAll("</html>", tooltipText +"</html>");
     }
 
-    private JPanel tab_builder(LatencyPanel latencyPanel) {
+    private JPanel tab_builder(HLAPanel latencyPanel) {
         JPanel coverPanel = new JPanel(new GridLayout(1,1));
         coverPanel.add(latencyPanel);
         return coverPanel;
     }
 
-    private void add_to_currenttab(LatencyPanel latencyPanel) {
+    private void add_to_currenttab(HLAPanel latencyPanel) {
         JPanel p1 = (JPanel) getSelectedComponent();
         p1.add(latencyPanel);
         p1.setLayout(new GridLayout(1,2));
@@ -155,7 +152,7 @@ public class LatencyTabbedPane extends DnDTabbedPane {
         return false;
     }
 
-    boolean isTimelineMasterTabOpen() {
+    boolean isMWPMasterTabOpen() {
         if (getTabCount() == 0) {
             return false;
         }
@@ -167,8 +164,20 @@ public class LatencyTabbedPane extends DnDTabbedPane {
         return false;
     }
 
+    boolean isTimelineMasterTabOpen() {
+        if (getTabCount() == 0) {
+            return false;
+        }
+        for (int i = 0; i < getTabCount(); i++) {
+            if (getTitleAt(i).contains(Application.TIME_OPTIONS_MASTER_TABNAME)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void openSLAMasterTab(Application app) {
-        SLAPanel slaPanel = new SLAPanel(app.getMainFrame(), app.getSlaProperties());
+        SLAPanel slaPanel = new SLAPanel(app.getMainFrame(), app.getAppProperties().getSlaProperties());
         addTab(Application.SLA_MASTER_TABNAME, slaPanel);
         setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.SLA_MASTER_TABNAME, this, tabsListener));
         setSelectedIndex(getTabCount() - 1);
@@ -176,9 +185,17 @@ public class LatencyTabbedPane extends DnDTabbedPane {
     }
 
     void openMWPMasterTab(Application app) {
-        MWPPanel mwpPanel = new MWPPanel(app.getMainFrame(), app.getMwpProperties());
+        MWPPanel mwpPanel = new MWPPanel(app.getMainFrame(), app.getAppProperties().getMwpProperties());
         addTab(Application.MWP_MASTER_TABNAME, mwpPanel);
         setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.MWP_MASTER_TABNAME, this, tabsListener));
+        setSelectedIndex(getTabCount() - 1);
+        checkFirstTabOpened();
+    }
+
+    void openTimeOptionsMasterTab(Application app) {
+        DatePanel timeOptionsPanel = new DatePanel(app.getMainFrame(), app.getAppProperties().getDateProperties());
+        addTab(Application.TIME_OPTIONS_MASTER_TABNAME, timeOptionsPanel);
+        setTabComponentAt(getTabCount() - 1, new TabCloseComponent(Application.TIME_OPTIONS_MASTER_TABNAME, this, tabsListener));
         setSelectedIndex(getTabCount() - 1);
         checkFirstTabOpened();
     }

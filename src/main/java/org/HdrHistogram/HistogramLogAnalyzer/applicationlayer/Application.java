@@ -5,14 +5,7 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
 
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
@@ -40,19 +33,17 @@ import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.*;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.plot.XYPlot;
 
 public class Application implements ActionListener {
 
-    private SLAProperties slaProperties = new SLAProperties();
-    private MWPProperties mwpProperties = new MWPProperties();
-    private HPLProperties hplProperties = new HPLProperties();
-    private ViewProperties viewProperties = new ViewProperties();
+    private AppProperties appProperties = new AppProperties();
 
     private JFrame mainframe;
-    private LatencyTabbedPane tabbedPane;
+    private HLATabbedPane tabbedPane;
     private JPanel toppanel, bottompanel;
 
     JFrame getMainFrame() {
@@ -60,11 +51,14 @@ public class Application implements ActionListener {
     }
 
     private static final String APP_TITLE = "Histogram Log Analyzer";
+
     static final String SLA_MASTER_TABNAME = "SLA Master";
     private static final String SLA_TOOLTIP_TEXT = "Service level agreement settings";
 
     static final String MWP_MASTER_TABNAME = "MWP Master";
     private static final String MWP_TOOLTIP_TEXT = "Moving window percentile settings";
+
+    static final String TIME_OPTIONS_MASTER_TABNAME = "Date/Time Options";
 
     private static final String NORMALIZE_TOOLTIP_TEXT =
             "Enable/disable normalizing across charts in the current tab";
@@ -195,10 +189,10 @@ public class Application implements ActionListener {
         JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
         File[] f3 = new File[p1.getComponentCount()];
         for (int k = 0; k < p1.getComponentCount(); k++) {
-            JPanel latencyPanel = (JPanel) p1.getComponent(k);
+            HLAPanel hlaPanel = (HLAPanel) p1.getComponent(k);
 
-            ChartPanel cp1 = (ChartPanel) latencyPanel.getComponent(0);
-            ChartPanel cp2 = (ChartPanel) latencyPanel.getComponent(1);
+            ChartPanel cp1 = hlaPanel.getTopChart();
+            ChartPanel cp2 = hlaPanel.getBottomChart();
             //String snaptitle = txt.getText();
 
             File f1 = new File(((Long) System.currentTimeMillis()).toString()
@@ -311,6 +305,9 @@ public class Application implements ActionListener {
             case "configureMWPHandler":
                 configureMWPHandler();
                 break;
+            case "configureTimeOptionsHandler":
+                configureTimeOptionsHandler();
+                break;
             case "exitHandler":
                 exitHandler();
                 break;
@@ -328,6 +325,9 @@ public class Application implements ActionListener {
                 break;
             case "showHPLButtonHandler":
                 showHPLButtonHandler(e);
+                break;
+            case "showDateButtonHandler":
+                showDateButtonHandler(e);
                 break;
             case "showPercentileChartHandler":
                 showPercentileChartHandler(e);
@@ -372,8 +372,14 @@ public class Application implements ActionListener {
     }
 
     private void configureMWPHandler() {
-        if (!tabbedPane.isTimelineMasterTabOpen()) {
+        if (!tabbedPane.isMWPMasterTabOpen()) {
             tabbedPane.openMWPMasterTab(Application.this);
+        }
+    }
+
+    private void configureTimeOptionsHandler() {
+        if (!tabbedPane.isTimelineMasterTabOpen()) {
+            tabbedPane.openTimeOptionsMasterTab(Application.this);
         }
     }
 
@@ -391,20 +397,20 @@ public class Application implements ActionListener {
             // find max and use it
             double maxYValue = 0.0;
             for (int i = 0; i < currentPanel.getComponentCount(); i++) {
-                LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                HLAPanel latencyPanel = (HLAPanel) currentPanel.getComponent(i);
                 ScaleProperties.ScaleEntry scaleEntry = latencyPanel.getScaleEntry();
                 maxYValue = Math.max(maxYValue, scaleEntry.getMaxYValue());
             }
             ScaleProperties.ScaleEntry normalizedScaleEntry =
                     new ScaleProperties.ScaleEntry(0.0, maxYValue); // ignore X
             for (int i = 0; i < currentPanel.getComponentCount(); i++) {
-                LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                HLAPanel latencyPanel = (HLAPanel) currentPanel.getComponent(i);
                 latencyPanel.scale(normalizedScaleEntry);
             }
         } else {
             // use default max values
             for (int i = 0; i < currentPanel.getComponentCount(); i++) {
-                LatencyPanel latencyPanel = (LatencyPanel) currentPanel.getComponent(i);
+                HLAPanel latencyPanel = (HLAPanel) currentPanel.getComponent(i);
                 latencyPanel.scale();
             }
         }
@@ -412,14 +418,13 @@ public class Application implements ActionListener {
 
     private void maxRangeHandler() {
         if (tabbedPane.getTabCount() != 0 && !tabbedPane.isMasterTabCurrent() &&
-            getViewProperties().getBottomChartType().equals(LatencyChartType.PERCENTILE))
+            appProperties.getViewProperties().getBottomChartType().equals(HLAChartType.PERCENTILE))
         {
             JPanel p1 = (JPanel) tabbedPane.getSelectedComponent();
             for (int k = 0; k < p1.getComponentCount(); k++) {
-                JPanel latencyPanel = (JPanel) p1.getComponent(k);
-
-                ChartPanel cp1 = (ChartPanel) latencyPanel.getComponent(0);
-                ChartPanel cp2 = (ChartPanel) latencyPanel.getComponent(1);
+                HLAPanel hlaPanel = (HLAPanel) p1.getComponent(k);
+                ChartPanel cp1 = hlaPanel.getTopChart();
+                ChartPanel cp2 = hlaPanel.getBottomChart();
                 XYPlot plot1 = (XYPlot) cp1.getChart().getPlot();
                 XYPlot plot2 = (XYPlot) cp2.getChart().getPlot();
 
@@ -446,7 +451,7 @@ public class Application implements ActionListener {
         } else {
             throw new RuntimeException("unknown source type: "+source);
         }
-        slaProperties.toggleSLAVisibility(b);
+        appProperties.getSlaProperties().toggleSLAVisibility(b);
         showSLAMenuItem.setSelected(b);
         showSLAButton.setSelected(b);
     }
@@ -461,7 +466,7 @@ public class Application implements ActionListener {
         } else {
             throw new RuntimeException("unknown source type: "+source);
         }
-        mwpProperties.toggleMWPVisibility(b);
+        appProperties.getMwpProperties().toggleMWPVisibility(b);
         showMWPMenuItem.setSelected(b);
         showMWPButton.setSelected(b);
     }
@@ -476,16 +481,30 @@ public class Application implements ActionListener {
         } else {
             throw new RuntimeException("unknown source type: "+source);
         }
-        hplProperties.toggleHPLVisibility(b);
+        appProperties.getHplProperties().toggleHPLVisibility(b);
         showHPLMenuItem.setSelected(b);
     }
 
+    private void showDateButtonHandler(ActionEvent e) {
+        boolean b;
+        Object source = e.getSource();
+        if (source instanceof JCheckBox) {
+            b = ((JCheckBox) source).isSelected();
+        } else if (source instanceof JCheckBoxMenuItem) {
+            b = ((JCheckBoxMenuItem) source).isSelected();
+        } else {
+            throw new RuntimeException("unknown source type: "+source);
+        }
+        appProperties.getDateProperties().setDatesVisible(b);
+        showDateMenuItem.setSelected(b);
+    }
+
     private void showPercentileChartHandler(ActionEvent e) {
-        viewProperties.toogleBottomChartType(LatencyChartType.PERCENTILE);
+        appProperties.getViewProperties().toogleBottomChartType(HLAChartType.PERCENTILE);
     }
 
     private void showBucketsChartHandler(ActionEvent e) {
-        viewProperties.toogleBottomChartType(LatencyChartType.BUCKETS);
+        appProperties.getViewProperties().toogleBottomChartType(HLAChartType.BUCKETS);
     }
 
     private void aboutHandler() {
@@ -496,12 +515,14 @@ public class Application implements ActionListener {
     private JMenuItem snapshotMenuItem;
     private JMenuItem configureSLAMenuItem;
     private JMenuItem configureMWPMenuItem;
+    private JMenuItem configureTimeOptionsMenuItem;
 
     private JCheckBoxMenuItem normalizeMenuItem;
     private JCheckBoxMenuItem maxRangeMenuItem;
     private JCheckBoxMenuItem showSLAMenuItem;
     private JCheckBoxMenuItem showMWPMenuItem;
     private JCheckBoxMenuItem showHPLMenuItem;
+    private JCheckBoxMenuItem showDateMenuItem;
 
     private JMenuItem bottomChartMenu;
     private JRadioButtonMenuItem showPercentileChart;
@@ -511,11 +532,13 @@ public class Application implements ActionListener {
         snapshotMenuItem.setEnabled(b);
         configureSLAMenuItem.setEnabled(b);
         configureMWPMenuItem.setEnabled(b);
+        configureTimeOptionsMenuItem.setEnabled(b);
         normalizeMenuItem.setEnabled(b);
         maxRangeMenuItem.setEnabled(b);
         showSLAMenuItem.setEnabled(b);
         showMWPMenuItem.setEnabled(b);
         showHPLMenuItem.setEnabled(b);
+        showDateMenuItem.setEnabled(b);
 
         bottomChartMenu.setEnabled(b);
         showPercentileChart.setEnabled(b);
@@ -552,6 +575,11 @@ public class Application implements ActionListener {
         configureMWPMenuItem = new JMenuItem("Configure MWP", new ImageIcon(getClass().getResource("icon_sla.png")));
         configureMWPMenuItem.setActionCommand("configureMWPHandler");
         configureMWPMenuItem.addActionListener(this);
+
+        // FIXME: new icon for this
+        configureTimeOptionsMenuItem = new JMenuItem("Configure Date/Time", new ImageIcon(getClass().getResource("icon_sla.png")));
+        configureTimeOptionsMenuItem.setActionCommand("configureTimeOptionsHandler");
+        configureTimeOptionsMenuItem.addActionListener(this);
 
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.setMnemonic(KeyEvent.VK_X);
@@ -590,6 +618,12 @@ public class Application implements ActionListener {
         showHPLMenuItem.setActionCommand("showHPLButtonHandler");
         showHPLMenuItem.addActionListener(this);
 
+        // TODO: better terminology
+        showDateMenuItem = new JCheckBoxMenuItem("Show date/time");
+        showDateMenuItem.setToolTipText("Show/hide date/time for X axis");
+        showDateMenuItem.setActionCommand("showDateButtonHandler");
+        showDateMenuItem.addActionListener(this);
+
         // REMIND: better icons
         ButtonGroup bottomChartGroup = new ButtonGroup();
         bottomChartMenu = new JMenu("Bottom chart");
@@ -618,6 +652,7 @@ public class Application implements ActionListener {
         fileMenu.addSeparator();
         fileMenu.add(configureSLAMenuItem);
         fileMenu.add(configureMWPMenuItem);
+        fileMenu.add(configureTimeOptionsMenuItem);
         fileMenu.addSeparator();
         fileMenu.add(exitMenuItem);
 
@@ -627,6 +662,7 @@ public class Application implements ActionListener {
         viewMenu.add(showSLAMenuItem);
         viewMenu.add(showMWPMenuItem);
         viewMenu.add(showHPLMenuItem);
+        viewMenu.add(showDateMenuItem);
         viewMenu.addSeparator();
         viewMenu.add(bottomChartMenu);
 
@@ -722,8 +758,8 @@ public class Application implements ActionListener {
                 enableToolbarButtons(true);
                 enableMenuItems(true);
 
-                showMWPButton.setEnabled(mwpProperties.isShowMWPUnlocked());
-                showMWPMenuItem.setEnabled(mwpProperties.isShowMWPUnlocked());
+                showMWPButton.setEnabled(appProperties.getMwpProperties().isShowMWPUnlocked());
+                showMWPMenuItem.setEnabled(appProperties.getMwpProperties().isShowMWPUnlocked());
             }
 
             @Override
@@ -732,14 +768,14 @@ public class Application implements ActionListener {
                 enableMenuItems(false);
             }
         };
-        tabbedPane = new LatencyTabbedPane(tabsListener);
+        tabbedPane = new HLATabbedPane(tabsListener);
 
-        mwpProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getMwpProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("applyMWP")) {
-                    showMWPButton.setEnabled(mwpProperties.isShowMWPUnlocked());
-                    showMWPMenuItem.setEnabled(mwpProperties.isShowMWPUnlocked());
+                    showMWPButton.setEnabled(appProperties.getMwpProperties().isShowMWPUnlocked());
+                    showMWPMenuItem.setEnabled(appProperties.getMwpProperties().isShowMWPUnlocked());
                 }
             }
         });
@@ -821,20 +857,8 @@ public class Application implements ActionListener {
         return inputFileNames;
     }
 
-    SLAProperties getSlaProperties() {
-        return slaProperties;
-    }
-
-    MWPProperties getMwpProperties() {
-        return mwpProperties;
-    }
-
-    HPLProperties getHplProperties() {
-        return hplProperties;
-    }
-
-    ViewProperties getViewProperties() {
-        return viewProperties;
+    AppProperties getAppProperties() {
+        return appProperties;
     }
 
     private void run(File[] inputFiles) throws IOException {

@@ -3,7 +3,9 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.properties;
+
+import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.HLAChartType;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -11,7 +13,7 @@ import java.beans.PropertyChangeSupport;
 public class ViewProperties {
 
     // Percentile by default but can be changed to Buckets via "View" settings
-    private LatencyChartType bottomChartType = LatencyChartType.PERCENTILE;
+    private HLAChartType bottomChartType = HLAChartType.PERCENTILE;
 
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
@@ -23,13 +25,13 @@ public class ViewProperties {
         pcs.removePropertyChangeListener(listener);
     }
 
-    LatencyChartType getBottomChartType() {
+    public HLAChartType getBottomChartType() {
         return bottomChartType;
     }
 
-    void toogleBottomChartType(LatencyChartType newBottomChartType) {
+    public void toogleBottomChartType(HLAChartType newBottomChartType) {
         if (bottomChartType != newBottomChartType) {
-            LatencyChartType oldBottomChartType = bottomChartType;
+            HLAChartType oldBottomChartType = bottomChartType;
             bottomChartType = newBottomChartType;
             pcs.firePropertyChange("bottomChartTypeChanged", oldBottomChartType, bottomChartType);
         }

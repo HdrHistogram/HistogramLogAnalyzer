@@ -6,8 +6,9 @@
 package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
 import org.HdrHistogram.*;
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.HPLProperties;
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.DateProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.HPLProperties;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.MWPProperties;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.*;
 
 import java.io.BufferedReader;
@@ -20,11 +21,16 @@ public class HistogramModel {
     private String inputFileName;
 
     // range to process
-    private String startTime;
-    private String endTime;
+    private Double intervalStart;
+    private Double intervalEnd;
 
-    // latest start time
-    private double latestStartTime;
+    // retrieved from log
+    private double startTimeSec;
+    private Date startTime;
+    private String startTimeString; // string from log as is
+
+    // timezone detected based on info in log
+    private TimeZone timezone;
 
     private MWPProperties mwpProperties;
     private Set<String> tags;
@@ -32,31 +38,74 @@ public class HistogramModel {
     private DBManager dbManager;
     private LogGeneratorType logGeneratorType;
 
-    public HistogramModel(String inputFileName, String startTime, String endTime, MWPProperties mwpProperties)
+    public HistogramModel(String inputFileName, Double intervalStart, Double intervalEnd, MWPProperties mwpProperties)
             throws IOException
     {
         this.inputFileName = inputFileName;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.intervalStart = intervalStart;
+        this.intervalEnd = intervalEnd;
         this.mwpProperties = mwpProperties;
         this.tags = TagsHelper.listTags(inputFileName);
         this.dbManager = new DBManager();
 
-        detectLogGeneratorType();
+        parseLogHeader();
         init();
     }
 
-    private void detectLogGeneratorType() throws IOException {
+    private static LogGeneratorType detectLogGeneratorType(String line) {
+        LogGeneratorType logGeneratorType = LogGeneratorType.UNKNOWN;
+        if (line.contains(LogGeneratorType.CASSANDRA_STRESS.getDescription())) {
+            logGeneratorType = LogGeneratorType.CASSANDRA_STRESS;
+        } else if (line.contains(LogGeneratorType.JHICCUP.getDescription())) {
+            logGeneratorType = LogGeneratorType.JHICCUP;
+        }
+        return logGeneratorType;
+    }
+
+    /*
+     * traverse all available timezones and for each timezone
+     * convert start time to string that represents start time in this timezone
+     *
+     * if any of these strings is the same as string in log,
+     * then use this timezone for this model
+     */
+    private static TimeZone detectTimeZone(String startTimeString, Date startTime) {
+        if (startTimeString == null) {
+            return null;
+        }
+
+        TimeZone timezone = null;
+        TimeZone defaultTimezone = TimeZone.getDefault();
+        List<String> allTimezones = DateProperties.getAllTimeZones();
+        for (String item : allTimezones) {
+            TimeZone candidateTimeZone = TimeZone.getTimeZone(item);
+            TimeZone.setDefault(candidateTimeZone);
+            String timeStringForCandidate = startTime.toString();
+            if (startTimeString.equals(timeStringForCandidate)) {
+                timezone = candidateTimeZone;
+                break;
+            }
+        }
+        TimeZone.setDefault(defaultTimezone);
+        return timezone;
+    }
+
+    private void parseLogHeader() throws IOException {
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(new FileReader(new File(inputFileName)));
             String line = reader.readLine();
-            if (line.contains(LogGeneratorType.CASSANDRA_STRESS.getDescription())) {
-                logGeneratorType = LogGeneratorType.CASSANDRA_STRESS;
-            } else if (line.contains(LogGeneratorType.JHICCUP.getDescription())) {
-                logGeneratorType = LogGeneratorType.JHICCUP;
-            } else {
-                logGeneratorType = LogGeneratorType.UNKNOWN;
+            boolean firstLine = true;
+            while (line != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    logGeneratorType = detectLogGeneratorType(line);
+                } else {
+                    if (line.contains("#[StartTime: ")) {
+                        startTimeString = line.substring(line.indexOf(",") + 2, line.indexOf("]"));
+                    }
+                }
+                line = reader.readLine();
             }
         } finally {
             if (reader != null) {
@@ -69,8 +118,16 @@ public class HistogramModel {
         return inputFileName;
     }
 
-    public double getLatestStartTime() {
-        return latestStartTime;
+    public double getStartTimeSec() {
+        return startTimeSec;
+    }
+
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    public TimeZone getTimeZone() {
+        return timezone;
     }
 
     public LogGeneratorType getLogGeneratorType() {
@@ -104,8 +161,8 @@ public class HistogramModel {
 
     private EncodableHistogram getIntervalHistogram(HistogramLogReader reader) {
         EncodableHistogram histogram;
-        if (startTime != null && endTime != null) {
-            histogram = reader.nextIntervalHistogram(Double.parseDouble(startTime), Double.parseDouble(endTime));
+        if (intervalStart != null && intervalEnd != null) {
+            histogram = reader.nextIntervalHistogram(intervalStart, intervalEnd);
         } else {
             histogram = reader.nextIntervalHistogram();
         }
@@ -136,7 +193,9 @@ public class HistogramModel {
         HistogramLogReader reader = new HistogramLogReader(new File(inputFileName));
         EncodableHistogram intervalHistogram = getIntervalHistogram(reader, tag);
 
-        latestStartTime = reader.getStartTimeSec();
+        startTimeSec = reader.getStartTimeSec();
+        startTime = new Date((long) startTimeSec * 1000);
+        timezone = detectTimeZone(startTimeString, startTime);
 
         if (intervalHistogram == null) {
             return; // no interval found

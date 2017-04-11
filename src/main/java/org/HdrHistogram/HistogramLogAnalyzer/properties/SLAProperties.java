@@ -3,7 +3,7 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.properties;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -54,7 +54,8 @@ public class SLAProperties {
         }
     }
 
-    private String SLA_FILENAME = "SLAdetails.xml";
+    // private String SLA_FILENAME = "SLAdetails.xml";
+    private String SLA_FILENAME = "/org/HdrHistogram/HistogramLogAnalyzer/applicationlayer/SLAdetails.xml";
 
     SLAProperties() {
         try {
@@ -96,12 +97,12 @@ public class SLAProperties {
         return isSLAVisible;
     }
 
-    void toggleSLAVisibility(boolean newValue) {
+    public void toggleSLAVisibility(boolean newValue) {
         isSLAVisible = newValue;
         pcs.firePropertyChange("slaShow", !newValue, newValue);
     }
 
-    void applySLA() {
+    public void applySLA() {
         pcs.firePropertyChange("applySLA", false, true);
     }
 
@@ -109,11 +110,11 @@ public class SLAProperties {
         return slaEntries;
     }
 
-    void clear() {
+    public void clear() {
         slaEntries.clear();
     }
 
-    void addSLAEntry(SLAEntry slaEntry) {
+    public void addSLAEntry(SLAEntry slaEntry) {
         slaEntries.add(slaEntry);
     }
 }

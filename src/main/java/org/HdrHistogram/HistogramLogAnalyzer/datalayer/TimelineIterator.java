@@ -5,7 +5,6 @@
 
 package org.HdrHistogram.HistogramLogAnalyzer.datalayer;
 
-import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.MWPProperties;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.TimelineObject;
 
 import java.sql.ResultSet;

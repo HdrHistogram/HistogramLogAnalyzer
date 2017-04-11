@@ -3,7 +3,7 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.properties;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -21,7 +21,7 @@ public class MWPProperties {
         private Double percentile;
         private long windowLength; // in msec
 
-        MWPEntry(Double percentile, long windowLength) {
+        public MWPEntry(Double percentile, long windowLength) {
             this.percentile = percentile;
             this.windowLength = windowLength;
         }
@@ -66,7 +66,7 @@ public class MWPProperties {
         }
     }
 
-    MWPProperties() {
+    public MWPProperties() {
         mwpEntries.add(DEFAULT_MWP_ENTRY);
     }
 
@@ -84,7 +84,7 @@ public class MWPProperties {
     /*
      * entries accessible via MWP master tab (default entry not accessible)
      */
-    List<MWPEntry> getAccessibleMWPEntry() {
+    public List<MWPEntry> getAccessibleMWPEntry() {
         List<MWPEntry> ret = new ArrayList<>();
         for (MWPEntry mwpEntry : getMWPEntries()) {
             if (!DEFAULT_MWP_ENTRY.equals(mwpEntry)) {
@@ -94,11 +94,11 @@ public class MWPProperties {
         return ret;
     }
 
-    void addMWPEntry(MWPEntry MWPEntry) {
+    public void addMWPEntry(MWPEntry MWPEntry) {
         mwpEntries.add(MWPEntry);
     }
 
-    void reset() {
+    public void reset() {
         mwpEntries.clear();
         mwpEntries.add(DEFAULT_MWP_ENTRY);
     }
@@ -117,12 +117,12 @@ public class MWPProperties {
         return isMWPVisible;
     }
 
-    void toggleMWPVisibility(boolean newValue) {
+    public void toggleMWPVisibility(boolean newValue) {
         isMWPVisible = newValue;
         pcs.firePropertyChange("mwpShow", !newValue, newValue);
     }
 
-    void applyMWP() {
+    public void applyMWP() {
         pcs.firePropertyChange("applyMWP", false, true);
     }
 

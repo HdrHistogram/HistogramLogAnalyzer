@@ -10,6 +10,7 @@ import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.PercentileIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.*;
 import org.jfree.chart.*;
 import org.jfree.chart.axis.LogAxis;
 import org.jfree.chart.axis.NumberAxis;
@@ -28,24 +29,20 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.IOException;
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class PercentileChartBuilder {
 
     private Double maxLatencyAxisValue = 0.0;
     private Double maxPercentileAxisValue = 0.0;
 
-    public JPanel createPercentileChart(final List<HistogramModel> histogramModels, final SLAProperties slaProperties,
-                                        final ZoomProperty zoomProperty, final MWPProperties MWPProperties,
-                                        final ScaleProperties scaleProperties, final HPLProperties hplProperties)
+    public JPanel createPercentileChart(final List<HistogramModel> histogramModels, final AppProperties appProperties,
+                                        final ScaleProperties scaleProperties)
     {
-        JFreeChart drawable = createPercentileDrawable(histogramModels, slaProperties, hplProperties);
+        JFreeChart drawable = createPercentileDrawable(histogramModels, appProperties);
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -92,30 +89,8 @@ public class PercentileChartBuilder {
             }
         });
 
-        // zooming on timeline chart updates percentile chart (listener part)
-        zoomProperty.addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                ZoomProperty.ZoomValue v = (ZoomProperty.ZoomValue) evt.getNewValue();
-                List<HistogramModel> newModels = new ArrayList<>();
-
-                for (HistogramModel model : histogramModels) {
-                    String inputFileName = model.getInputFileName();
-                    try {
-                        newModels.add(new HistogramModel(inputFileName,
-                                v.getLowerBoundString(), v.getUpperBoundString(), MWPProperties));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                JFreeChart drawable = createPercentileDrawable(newModels, slaProperties, hplProperties);
-                chartPanel.setChart(drawable);
-            }
-        });
-
         // enabling/disabling SLA checkbox changes visibility of this SLA line on chart
-        slaProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getSlaProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("slaShow")) {
@@ -140,7 +115,7 @@ public class PercentileChartBuilder {
         });
 
         // reseting SLA values updates percentile chart
-        slaProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getSlaProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("applySLA")) {
@@ -158,7 +133,7 @@ public class PercentileChartBuilder {
                     // update SLA series
                     if (slaSeries != null) {
                         slaSeries.clear();
-                        List<SLAProperties.SLAEntry> slaEntries = slaProperties.getSLAEntries();
+                        List<SLAProperties.SLAEntry> slaEntries = appProperties.getSlaProperties().getSLAEntries();
                         slaEntries.add(0, new SLAProperties.SLAEntry(0.0, 0.0));
                         int count = slaEntries.size();
                         for (int i = 0; i < count; i++) {
@@ -176,7 +151,7 @@ public class PercentileChartBuilder {
         });
 
         // toggling HPL menu item changes visibility of HPL lines on chart
-        hplProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getHplProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("hplShow")) {
@@ -212,14 +187,12 @@ public class PercentileChartBuilder {
         return chartPanel;
     }
 
-    private JFreeChart createPercentileDrawable(List<HistogramModel> histogramModels,
-                                                SLAProperties slaProperties, HPLProperties hplProperties)
-    {
-        String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.PERCENTILE);
-        String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.PERCENTILE);
-        String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.PERCENTILE);
-        String logAxis    = ConstantsHelper.getLogAxisLabel(LatencyChartType.PERCENTILE);
-        XYSeriesCollection sc = createXYSeriesCollection(histogramModels, slaProperties);
+    private JFreeChart createPercentileDrawable(List<HistogramModel> histogramModels, AppProperties appProperties) {
+        String chartTitle = ConstantsHelper.getChartTitle(HLAChartType.PERCENTILE);
+        String xAxisLabel = ConstantsHelper.getXAxisLabel(HLAChartType.PERCENTILE);
+        String yAxisLabel = ConstantsHelper.getYAxisLabel(HLAChartType.PERCENTILE);
+        String logAxis    = ConstantsHelper.getLogAxisLabel(HLAChartType.PERCENTILE);
+        XYSeriesCollection sc = createXYSeriesCollection(histogramModels, appProperties.getSlaProperties());
 
         JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
             xAxisLabel,
@@ -297,12 +270,12 @@ public class PercentileChartBuilder {
             XYSeries series = dataset.getSeries(i);
             String key = (String) series.getKey();
             if (key.equals("SLA")) {
-                renderer.setSeriesVisible(i, slaProperties.isSLAVisible());
+                renderer.setSeriesVisible(i, appProperties.getSlaProperties().isSLAVisible());
                 renderer.setSeriesPaint(i, ColorHelper.getSLAColor());
                 renderer.setSeriesShapesVisible(i, false);
                 renderer.setSeriesStroke(i, new BasicStroke(2.0f));
             } else if (key.endsWith("%") || key.equals("Max")) {
-                renderer.setSeriesVisible(i, hplProperties.isHPLVisible());
+                renderer.setSeriesVisible(i, appProperties.getHplProperties().isHPLVisible());
                 renderer.setSeriesPaint(i, ColorHelper.getHPLColor(key));
                 renderer.setSeriesStroke(i, new BasicStroke(2.0f));
             } else {

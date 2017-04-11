@@ -3,7 +3,7 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.properties;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -33,7 +33,7 @@ public class HPLProperties {
         return isHPLVisible;
     }
 
-    void toggleHPLVisibility(boolean newValue) {
+    public void toggleHPLVisibility(boolean newValue) {
         isHPLVisible = newValue;
         pcs.firePropertyChange("hplShow", !newValue, newValue);
     }

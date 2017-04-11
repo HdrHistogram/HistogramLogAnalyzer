@@ -3,7 +3,9 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package org.HdrHistogram.HistogramLogAnalyzer.applicationlayer;
+package org.HdrHistogram.HistogramLogAnalyzer.panels;
+
+import org.HdrHistogram.HistogramLogAnalyzer.properties.MWPProperties;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,16 +15,16 @@ import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-class MWPPanel extends JPanel {
+public class MWPPanel extends JPanel {
 
     private JFrame mainframe;
     private JPanel panel;
-    private MWPProperties MWPProperties;
+    private org.HdrHistogram.HistogramLogAnalyzer.properties.MWPProperties MWPProperties;
 
     private static final int TIMELINE_COLUMNS_NUMBER = 3;
 
 
-    MWPPanel(JFrame mainframe, MWPProperties MWPProperties) {
+    public MWPPanel(JFrame mainframe, MWPProperties MWPProperties) {
         this.mainframe = mainframe;
         this.MWPProperties = MWPProperties;
         List<MWPProperties.MWPEntry> mwpEntries =

@@ -7,12 +7,12 @@ package org.HdrHistogram.HistogramLogAnalyzer.charts;
 
 import org.HdrHistogram.HistogramLogAnalyzer.applicationlayer.*;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.HistogramModel;
-import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
-import org.HdrHistogram.HistogramLogAnalyzer.datalayer.PercentileIterator;
-import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TimelineIterator;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
-import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.TimelineObject;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.*;
+
 import org.jfree.chart.*;
+import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.LegendItemEntity;
 import org.jfree.chart.event.AxisChangeEvent;
@@ -23,8 +23,8 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
 
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.data.Range;
+import org.jfree.data.xy.*;
 import org.jfree.ui.RectangleEdge;
 
 import javax.swing.*;
@@ -33,19 +33,20 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
+import java.text.DateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 public class TimelineChartBuilder {
 
-    public JPanel createTimelineChart(final List<HistogramModel> models, final ZoomProperty zoomProperty,
-                                      final MWPProperties mwpProperties, final ScaleProperties scaleProperties,
-                                      final HPLProperties hplProperties)
+    public JPanel createTimelineChart(final List<HistogramModel> models, final AppProperties appProperties,
+                                      final ZoomProperties zoomProperty, final ScaleProperties scaleProperties,
+                                      final HLAChartType chartType)
     {
-        JFreeChart drawable = createTimelineDrawable(models, mwpProperties, hplProperties);
+        JFreeChart drawable = createTimelineDrawable(models, zoomProperty, appProperties, chartType);
+
+        final DateProperties dateProperties = appProperties.getDateProperties();
 
         final ChartPanel chartPanel = new ChartPanel(drawable, true);
         chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
@@ -76,10 +77,9 @@ public class TimelineChartBuilder {
                     XYLineAndShapeRenderer renderer =
                             (XYLineAndShapeRenderer) plot.getRenderer();
 
-                    XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+                    XYDataset dataset = plot.getDataset();
                     for (int i = 0; i < dataset.getSeriesCount(); i++) {
-                        XYSeries series = dataset.getSeries(i);
-                        String key = (String) series.getKey();
+                        String key = (String)dataset.getSeriesKey(i);
                         Boolean flag = renderer.getSeriesLinesVisible(i);
                         if (key.equals(legendItemEntity.getSeriesKey())) {
                             renderer.setSeriesLinesVisible(i, !flag);
@@ -92,35 +92,8 @@ public class TimelineChartBuilder {
             }
         });
 
-        // tool doesn't support MWP for charts with multiple files
-        // tool doesn't support MWP for files with multiple tags
-        boolean multipleFiles = models.size() > 1;
-        if (!multipleFiles) {
-            final HistogramModel model = models.get(0);
-            boolean multipleTags = model.getTags().size() > 1;
-            if (!multipleTags) {
-                model.getMwpProperties().addPropertyChangeListener(new PropertyChangeListener() {
-                    @Override
-                    public void propertyChange(PropertyChangeEvent evt) {
-                        if (evt.getPropertyName().equals("applyMWP")) {
-                            List<HistogramModel> newModels = new ArrayList<>();
-                            String inputFileName = model.getInputFileName();
-                            MWPProperties mwpProperties = model.getMwpProperties();
-                            try {
-                                newModels.add(new HistogramModel(inputFileName, null, null, mwpProperties));
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            JFreeChart drawable = createTimelineDrawable(newModels, mwpProperties, hplProperties);
-                            chartPanel.setChart(drawable);
-                        }
-                        }
-                });
-            }
-        }
-
         // enabling/disabling MWP checkbox changes visibility of this MWP lines on chart
-        mwpProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getMwpProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("mwpShow")) {
@@ -128,10 +101,9 @@ public class TimelineChartBuilder {
                     XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
                     XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
 
-                    XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+                    XYDataset dataset = plot.getDataset();
                     for (int i = 0; i < dataset.getSeriesCount(); i++) {
-                        XYSeries series = dataset.getSeries(i);
-                        String key = (String) series.getKey();
+                        String key = (String)dataset.getSeriesKey(i);
                         if (key.contains("%'ile")) {
                             renderer.setSeriesVisible(i, b);
                         }
@@ -141,7 +113,7 @@ public class TimelineChartBuilder {
         });
 
         // toggling HPL menu item changes visibility of HPL lines on chart
-        hplProperties.addPropertyChangeListener(new PropertyChangeListener() {
+        appProperties.getHplProperties().addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getPropertyName().equals("hplShow")) {
@@ -149,26 +121,14 @@ public class TimelineChartBuilder {
                     XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
                     XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
 
-                    XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
+                    XYDataset dataset = plot.getDataset();
                     for (int i = 0; i < dataset.getSeriesCount(); i++) {
-                        XYSeries series = dataset.getSeries(i);
-                        String key = (String) series.getKey();
+                        String key = (String)dataset.getSeriesKey(i);
                         if (key.endsWith("%") || key.equals("Max")) {
                             renderer.setSeriesVisible(i, b);
                         }
                     }
                 }
-            }
-        });
-
-        // zooming on timeline chart updates percentile chart (fire part)
-        final XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
-        plot.getDomainAxis().addChangeListener(new AxisChangeListener() {
-            @Override
-            public void axisChanged(AxisChangeEvent axisChangeEvent) {
-                String lowerBoundString = String.valueOf(plot.getDomainAxis().getLowerBound());
-                String upperBoundString = String.valueOf(plot.getDomainAxis().getUpperBound());
-                zoomProperty.zoom(new ZoomProperty.ZoomValue(lowerBoundString, upperBoundString));
             }
         });
 
@@ -183,48 +143,159 @@ public class TimelineChartBuilder {
             }
         });
 
+        zoomProperty.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                ZoomProperties.ZoomValue v = (ZoomProperties.ZoomValue) evt.getNewValue();
+                // ignore notifications from same chart
+                if (v.getChartType() == chartType) {
+                    return;
+                }
+
+                XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+                if (v.getAxisType() == ZoomProperties.AxisType.RANGE) {
+                    plot.getRangeAxis().setRange(v.getRange());
+                    return;
+                }
+
+                Range newDomainRange;
+                // match date chart with first model
+                double startTime = models.get(0).getStartTimeSec();
+                if (v.getChartType() == HLAChartType.TIMELINE_ELAPSED_TIME) {
+                    newDomainRange = DateProperties.rangeToDateRange(startTime, v.getRange());
+                } else {
+                    newDomainRange = DateProperties.dateRangeToRange(startTime, v.getRange());
+                }
+                plot.getDomainAxis().setRange(newDomainRange);
+            }
+        });
+
+        if (chartType == HLAChartType.TIMELINE_DATE) {
+            dateProperties.addPropertyChangeListener(new PropertyChangeListener() {
+                @Override
+                public void propertyChange(PropertyChangeEvent evt) {
+                    if (evt.getPropertyName().equals("setShowDate") ||
+                        evt.getPropertyName().equals("setUserTimezone") ||
+                        evt.getPropertyName().equals("setShowSeconds") ||
+                        evt.getPropertyName().equals("setShowMilliseconds"))
+                    {
+                        XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+                        DateAxis axis = (DateAxis) plot.getDomainAxis();
+                        axis.setDateFormatOverride(dateProperties.getDateFormat(models));
+
+                        TimeZone timezone = appProperties.getDateProperties().getTimeZone(models);
+                        Date startTime = models.get(0).getStartTime();
+                        String xAxisLabel = ConstantsHelper.getXAxisLabel(chartType,
+                                DateProperties.getShortTimezoneString(timezone, startTime));
+                        chartPanel.getChart().getXYPlot().getDomainAxis().setLabel(xAxisLabel);
+                    }
+                }
+            });
+        }
+
         // FIXME: uninstall listeners
 
         return chartPanel;
     }
 
-    private JFreeChart createTimelineDrawable(List<HistogramModel> models, MWPProperties mwpProperties,
-                                              HPLProperties hplProperties)
+    /*
+     * defaults for TimeSeries and XYLine charts are slightly different
+     * use these tweaks to align these charts so that switching
+     * between these charts doesn't change plots.
+     */
+    private void adjustDrawable(JFreeChart drawable, HLAChartType chartType) {
+        if (chartType == HLAChartType.TIMELINE_DATE) {
+            ((NumberAxis)drawable.getXYPlot().getRangeAxis()).setAutoRangeIncludesZero(true);
+        } else {
+            ((NumberAxis)drawable.getXYPlot().getDomainAxis()).setAutoRangeStickyZero(false);
+        }
+
+        final XYPlot plot = drawable.getXYPlot();
+        ValueAxis v = plot.getDomainAxis();
+        v.setLowerMargin(0.05D);
+        v.setUpperMargin(0.05D);
+    }
+
+    private JFreeChart createTimelineDrawable(final List<HistogramModel> models,
+                                              final ZoomProperties zoomProperty,
+                                              final AppProperties appProperties, final HLAChartType chartType)
     {
-        String chartTitle = ConstantsHelper.getChartTitle(LatencyChartType.TIMELINE);
-        String xAxisLabel = ConstantsHelper.getXAxisLabel(LatencyChartType.TIMELINE);
-        String yAxisLabel = ConstantsHelper.getYAxisLabel(LatencyChartType.TIMELINE);
-        XYSeriesCollection seriesCollection = createXYSeriesCollection(models);
+        TimeZone timeZone = appProperties.getDateProperties().getTimeZone(models);
 
-        JFreeChart drawable = ChartFactory.createXYLineChart(chartTitle,
-                xAxisLabel,
-                yAxisLabel,
-                seriesCollection,
-                PlotOrientation.VERTICAL,
-                true,
-                true,
-                false);
+        String chartTitle = ConstantsHelper.getChartTitle(chartType);
+        Date startTime = models.get(0).getStartTime();
+        String xAxisLabel = ConstantsHelper.getXAxisLabel(chartType, DateProperties.getShortTimezoneString(timeZone, startTime));
+        String yAxisLabel = ConstantsHelper.getYAxisLabel(chartType);
 
+        CommonSeriesCollection seriesCollection = new TimelineDatasetBuilder().build(models, chartType);
+        XYDataset dataset = seriesCollection.getDataset();
+
+        JFreeChart drawable;
+        if (chartType == HLAChartType.TIMELINE_DATE) {
+            drawable = ChartFactory.createTimeSeriesChart(chartTitle,
+                    xAxisLabel,
+                    yAxisLabel,
+                    dataset,
+                    true,
+                    true,
+                    false);
+        } else {
+            drawable = ChartFactory.createXYLineChart(chartTitle,
+                    xAxisLabel,
+                    yAxisLabel,
+                    dataset,
+                    PlotOrientation.VERTICAL,
+                    true,
+                    true,
+                    false);
+        }
+        adjustDrawable(drawable, chartType);
+
+        final XYPlot plot = drawable.getXYPlot();
         drawable.getPlot().setBackgroundPaint(Color.white);
         drawable.getXYPlot().setRangeGridlinePaint(Color.gray);
         drawable.getXYPlot().setDomainGridlinePaint(Color.gray);
 
+        // zooming on timeline chart updates percentile chart (fire part)
+        // also updates another timeline chart
+        plot.getDomainAxis().addChangeListener(new AxisChangeListener() {
+            @Override
+            public void axisChanged(AxisChangeEvent axisChangeEvent) {
+                if (appProperties.getDateProperties().isChartActive(chartType)) {
+                    Range range = plot.getDomainAxis().getRange();
+                    zoomProperty.zoom(new ZoomProperties.ZoomValue(ZoomProperties.AxisType.DOMAIN, range, chartType));
+                }
+            }
+        });
+        plot.getRangeAxis().addChangeListener(new AxisChangeListener() {
+            @Override
+            public void axisChanged(AxisChangeEvent axisChangeEvent) {
+                if (appProperties.getDateProperties().isChartActive(chartType)) {
+                    Range range = plot.getRangeAxis().getRange();
+                    zoomProperty.zoom(new ZoomProperties.ZoomValue(ZoomProperties.AxisType.RANGE, range, chartType));
+                }
+            }
+        });
+
+        if (chartType == HLAChartType.TIMELINE_DATE) {
+            DateAxis axis = (DateAxis) plot.getDomainAxis();
+            DateFormat df = appProperties.getDateProperties().getDateFormat(models);
+            axis.setDateFormatOverride(df);
+            axis.setTimeZone(df.getTimeZone());
+        }
+
         // MWP/HPL visibility, line settings
-        XYPlot plot = (XYPlot) drawable.getPlot();
-        XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
         final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         for (int i = 0; i < dataset.getSeriesCount(); i++) {
             renderer.setSeriesShapesVisible(i, false);
             renderer.setSeriesLinesVisible(i, true);
 
-            XYSeries series = dataset.getSeries(i);
-            String key = (String) series.getKey();
-
+            String key = (String)dataset.getSeriesKey(i);
             if (key.contains("%'ile")) {
-                renderer.setSeriesVisible(i, mwpProperties.isMWPVisible());
+                renderer.setSeriesVisible(i, appProperties.getMwpProperties().isMWPVisible());
                 renderer.setSeriesPaint(i, ColorHelper.getColor(i));
             } else if (key.endsWith("%") || key.equals("Max")) {
-                renderer.setSeriesVisible(i, hplProperties.isHPLVisible());
+                renderer.setSeriesVisible(i, appProperties.getHplProperties().isHPLVisible());
                 renderer.setSeriesPaint(i, ColorHelper.getHPLColor(key));
                 renderer.setSeriesStroke(i, new BasicStroke(2.0f));
             } else {
@@ -241,96 +312,5 @@ public class TimelineChartBuilder {
         plot.setRenderer(renderer);
 
         return drawable;
-    }
-
-    private static final String DEFAULT_KEY = "Max per interval";
-
-    private XYSeriesCollection createXYSeriesCollection(List<HistogramModel> histogramModels) {
-        XYSeriesCollection ret = new XYSeriesCollection();
-
-        // tool doesn't support MWP/HPL for charts with multiple files
-        // tool doesn't support MWP/HPL for files with multiple tags
-        boolean multipleFiles = histogramModels.size() > 1;
-        if (!multipleFiles) {
-            HistogramModel histogramModel = histogramModels.get(0);
-            Set<String> tags = histogramModel.getTags();
-
-            boolean multipleTags = tags.size() > 1;
-            if (!multipleTags) {
-                MWPProperties mwpProperties = histogramModel.getMwpProperties();
-                List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
-                for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
-                    String key;
-                    if (mwpEntry.isDefaultEntry()) {
-                        key = DEFAULT_KEY;
-                    } else {
-                        key = mwpEntry.toString();
-                    }
-                    XYSeries series = new XYSeries(key);
-
-                    TimelineIterator ti = histogramModel.listTimelineObjects(false, null, mwpEntry);
-                    while (ti.hasNext()) {
-                        TimelineObject to = ti.next();
-                        series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());
-                    }
-                    ret.addSeries(series);
-                }
-
-                // HPL lines
-                Iterator<PercentileObject> pi = histogramModel.listHPLPercentileObjects(null);
-                while (pi.hasNext()) {
-                    PercentileObject po = pi.next();
-                    String key = String.valueOf(po.getPercentileValue() * 100);
-                    key = key.indexOf(".") < 0 ? key : key.replaceAll("0*$", "").replaceAll("\\.$", "");
-                    XYSeries series = new XYSeries(key +"%");
-
-                    series.add(ret.getDomainLowerBound(false), po.getLatencyAxisValue());
-                    series.add(ret.getDomainUpperBound(false), po.getLatencyAxisValue());
-
-                    ret.addSeries(series);
-                }
-
-                // Max line
-                Double maxLatencyAxisValue = 0.0;
-                MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(null);
-                PercentileObject mpo;
-                while (mpi.hasNext()) {
-                    mpo = mpi.next();
-                    maxLatencyAxisValue = Math.max(maxLatencyAxisValue, mpo.getLatencyAxisValue());
-                }
-                XYSeries series = new XYSeries("Max");
-                series.add(ret.getDomainLowerBound(false), maxLatencyAxisValue);
-                series.add(ret.getDomainUpperBound(false), maxLatencyAxisValue);
-                ret.addSeries(series);
-
-                return ret;
-            }
-        }
-
-        for (HistogramModel histogramModel : histogramModels) {
-            boolean multipleTags = histogramModel.getTags().size() > 1;
-            for (String tag : histogramModel.getTags()) {
-                String key;
-                if (multipleFiles) {
-                    key = histogramModel.getShortFileName();
-                } else {
-                    if (multipleTags) {
-                        key = tag == null ? "No Tag" : tag;
-                    } else {
-                        key = DEFAULT_KEY;
-                    }
-                }
-                XYSeries series = new XYSeries(key);
-
-                TimelineIterator ti = histogramModel.listTimelineObjects(true, tag, null);
-                while (ti.hasNext()) {
-                    TimelineObject to = ti.next();
-                    series.add(to.getTimelineAxisValue(), to.getLatencyAxisValue());
-                }
-                ret.addSeries(series);
-            }
-        }
-
-        return ret;
     }
 }

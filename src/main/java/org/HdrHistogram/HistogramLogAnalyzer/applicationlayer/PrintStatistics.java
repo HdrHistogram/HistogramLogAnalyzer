@@ -5,6 +5,7 @@ import org.HdrHistogram.HistogramLogAnalyzer.datalayer.MaxPercentileIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.datalayer.TimelineIterator;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.PercentileObject;
 import org.HdrHistogram.HistogramLogAnalyzer.dataobjectlayer.TimelineObject;
+import org.HdrHistogram.HistogramLogAnalyzer.properties.MWPProperties;
 
 import java.io.IOException;
 import java.util.*;
@@ -22,7 +23,7 @@ class PrintStatistics {
         String tagString = (tag != null) ? "[tag=" + tag + "]" : "";
         System.out.println("LogFile"+ tagString + ": " + histogramModel.getInputFileName());
 
-        double startTime = histogramModel.getLatestStartTime();
+        double startTime = histogramModel.getStartTimeSec();
         System.out.format(Locale.US, "StartTime: %.3f (seconds since epoch), %s\n",
                             startTime, (new Date((long) (startTime * 1000))).toString());
 
