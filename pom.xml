@@ -4,7 +4,7 @@
 
   <groupId>org.hdrhistogram.histogramloganalyzer</groupId>
   <artifactId>HistogramLogAnalyzer</artifactId>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.0.3</version>
 
   <name>HistogramLogAnalyzer</name>
 
@@ -23,7 +23,7 @@
     <url>scm:git:git://github.com/HdrHistogram/HistogramLogAnalyzer.git</url>
     <connection>scm:git:git://github.com/HdrHistogram/HistogramLogAnalyzer.git</connection>
     <developerConnection>scm:git:git@github.com:HdrHistogram/HistogramLogAnalyzer.git</developerConnection>
-    <tag>HistogramLogAnalyzer-1.0.1</tag>
+    <tag>HistogramLogAnalyzer-1.0.3</tag>
   </scm>
 
   <issueManagement>
