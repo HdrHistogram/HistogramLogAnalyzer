@@ -24,7 +24,7 @@ class HLATimeSeries extends TimeSeries implements CommonSeries {
     public void add(TimelineObject timelineObject, double startTime) {
         double xValue = startTime + timelineObject.getTimelineAxisValue();
         Date date = new Date((long) (xValue * 1000));
-        super.add(new FixedMillisecond(date), timelineObject.getLatencyAxisValue());
+        super.addOrUpdate(new FixedMillisecond(date), timelineObject.getLatencyAxisValue());
     }
 
     @Override
@@ -32,8 +32,8 @@ class HLATimeSeries extends TimeSeries implements CommonSeries {
         double lowerValue = domainBounds.getLowerBound();
         double upperValue = domainBounds.getUpperBound();
 
-        super.add(new FixedMillisecond(new Date((long) lowerValue)), latencyAxisValue);
-        super.add(new FixedMillisecond(new Date((long) upperValue)), latencyAxisValue);
+        super.addOrUpdate(new FixedMillisecond(new Date((long) lowerValue)), latencyAxisValue);
+        super.addOrUpdate(new FixedMillisecond(new Date((long) upperValue)), latencyAxisValue);
     }
 
     @Override
