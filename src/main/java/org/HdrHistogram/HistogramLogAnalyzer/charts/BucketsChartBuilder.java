@@ -212,8 +212,12 @@ public class BucketsChartBuilder {
 
             boolean multipleTags = tags.size() > 1;
             if (!multipleTags) {
+                String tag = null;
+                if(!tags.isEmpty()) {
+                    tag = tags.iterator().next();
+                }
                 XYSeries series = new XYSeries(DEFAULT_KEY);
-                BucketIterator bi = histogramModel.listBucketObjects(null);
+                BucketIterator bi = histogramModel.listBucketObjects(tag);
                 while (bi.hasNext()) {
                     BucketObject bo = (BucketObject) bi.next();
                     double hiccupValue = bo.getLatencyValue();
@@ -226,7 +230,7 @@ public class BucketsChartBuilder {
                 ret.addSeries(series);
 
                 // HPL lines (vertical lines actually but let's use HPL for consistency)
-                Iterator<PercentileObject> pi = histogramModel.listHPLPercentileObjects(null);
+                Iterator<PercentileObject> pi = histogramModel.listHPLPercentileObjects(tag);
                 while (pi.hasNext()) {
                     PercentileObject po = pi.next();
                     String key = String.valueOf(po.getPercentileValue() * 100);
@@ -242,7 +246,7 @@ public class BucketsChartBuilder {
 
                 // Max line
                 Double maxLatencyAxisValue = 0.0;
-                MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(null);
+                MaxPercentileIterator mpi = histogramModel.listMaxPercentileObjects(tag);
                 PercentileObject mpo;
                 while (mpi.hasNext()) {
                     mpo = mpi.next();

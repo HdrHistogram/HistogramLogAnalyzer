@@ -50,6 +50,10 @@ class TimelineDatasetBuilder {
 
             boolean multipleTags = tags.size() > 1;
             if (!multipleTags) {
+                String tag = null;
+                if(!tags.isEmpty()) {
+                    tag = tags.iterator().next();
+                }
                 MWPProperties mwpProperties = histogramModel.getMwpProperties();
                 List<MWPProperties.MWPEntry> mwpEntries = mwpProperties.getMWPEntries();
                 for (MWPProperties.MWPEntry mwpEntry : mwpEntries) {
@@ -62,7 +66,7 @@ class TimelineDatasetBuilder {
 
                     double startTime = histogramModel.getStartTimeSec();
                     CommonSeries series = createSeries(key, chartType);
-                    TimelineIterator ti = histogramModel.listTimelineObjects(false, null, mwpEntry);
+                    TimelineIterator ti = histogramModel.listTimelineObjects(false, tag, mwpEntry);
                     while (ti.hasNext()) {
                         TimelineObject to = ti.next();
                         series.add(to, startTime);
@@ -71,7 +75,7 @@ class TimelineDatasetBuilder {
                 }
 
                 // HPL lines
-                Iterator<PercentileObject> pi = histogramModel.listHPLPercentileObjects(null);
+                Iterator<PercentileObject> pi = histogramModel.listHPLPercentileObjects(tag);
                 while (pi.hasNext()) {
                     PercentileObject po = pi.next();
                     String key = String.valueOf(po.getPercentileValue() * 100);
